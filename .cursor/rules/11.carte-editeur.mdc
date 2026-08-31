@@ -1,0 +1,44 @@
+---
+description: Éditeur carte — drag arrêts, waypoints, OSRM côté API, SRID 4326
+globs: src/features/editor/**/*.{ts,tsx},src/components/**/*map*.{ts,tsx}
+alwaysApply: false
+---
+
+# Éditeur de correction (carte)
+
+## Rôle du front
+Afficher le shape + les arrêts, capturer le geste, envoyer des **WGS84** (`lng`, `lat`) à l’API.  
+L’API fait : `ST_SetSRID(ST_MakePoint(lng, lat), 4326)`, OSRM / GraphHopper, écriture PostGIS + `GTFS/`.
+
+**Interdit** dans le navigateur : appeler OSRM, réécrire `shapes.txt`, interpoler un LineString « à la main » comme vérité métier.
+
+## Interactions (V1)
+| Geste | Effet |
+|-------|--------|
+| Glisser un arrêt | MAJ provisoire locale → PATCH stop `{ stopId, lat, lng }` |
+| Clic « point de passage » puis clic carte | Waypoint ordonné entre deux arrêts |
+| Recalculer le tracé | POST waypoints + stops → polyline API (OSRM) affichée en preview |
+| Enregistrer | Persistance API (voir **12**). Annuler = revert Query |
+
+## Carte
+- Client Component unique, import dynamique si besoin (`ssr: false`).
+- Fond OSM. Tracé `brand` 80 % opacité. Arrêts = disques, **draggables**, nom visible.
+- Waypoints visuellement distincts des arrêts GTFS (pas un `stop_id`).
+- Ne pas charger le feed entier : **un** shape de la ligne / course courante.
+
+## Contrat à respecter
+Coordonnées **lng, lat** (ordre PostGIS `ST_MakePoint(lng, lat)`). Zod :
+
+```ts
+const stopPatchSchema = z.object({
+  stopId: z.string().min(1),
+  lat: z.number().gte(-90).lte(90),
+  lng: z.number().gte(-180).lte(180),
+});
+```
+
+## TDD
+- Drag → payload Zod valide (table-driven bornes).
+- Waypoint inséré à l’index attendu.
+- Mock carte : pas de tuiles en Vitest.
+- **Pas** d’assertion sur une géométrie OSRM calculée localement.

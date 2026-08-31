@@ -1,0 +1,45 @@
+---
+description: UI simple, UX bureau, accessibilité WCAG, SEO interne (noindex)
+globs: app/**/*.{ts,tsx},src/**/*.tsx,src/components/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# UI, UX, accessibilité, SEO
+
+## Intention
+Outil **bureau**, prise en main en **< 1 minute** : liste à gauche, carte à droite, actions évidentes (Enregistrer, Annuler, Recalculer le tracé). Pas de jargon OSRM / PostGIS dans l’UI.
+
+## Design (shadcn + Tailwind)
+- Charte alignée mobile : marque `#0056D6`, texte `#333333`, fond clair, Inter (`next/font`).
+- **Interdit** : hex magiques hors tokens CSS (`--brand` dans `globals.css`).
+- Densité confortable, pas de dashboard gadget. Un CTA primaire par écran.
+- shadcn via `npx shadcn@latest add` — ne pas réécrire Button / Dialog à la main.
+
+```tsx
+// ❌ BAD
+<button className="bg-[#0056D6]">OK</button>
+
+// ✅ GOOD
+<Button>Enregistrer le tracé</Button>
+```
+
+## UX éditeur
+1. Choisir la ligne (périmètre) → voir le tracé.
+2. Glisser l’arrêt décalé **ou** poser un waypoint si ça coupe à travers champ.
+3. Recalcul (API) puis **Enregistrer** (destructeur) vs **Annuler**.
+4. États : chargement (skeleton), vide, erreur (`error.message`), succès (le mobile utilisera la nouvelle version).
+
+## Accessibilité (WCAG 2.2 AA visé)
+- `lang="fr"` sur `<html>`. Landmarks : `header`, `nav`, `main`.
+- Tout contrôle **hors carte** : `getByRole` possible (label, bouton nommé).
+- Focus visible, piège de focus dans les Dialog. Zone de clic ≥ 44px.
+- Contraste texte / fond. Ne pas reposer sur la couleur seule (arrêt déplacé = libellé + icône).
+- Carte : alternative clavier minimale (liste d’arrêts + champs lat/lng) pour qui ne peut pas drag.
+
+## SEO (outil interne)
+- `robots: { index: false, follow: false }` (metadata racine).
+- `generateMetadata` : titre unique par page (`Ligne 57S012 — Optiligne Admin`).
+- HTML sémantique (`h1` unique). **Pas** de pages marketing, **pas** de `next/head` Pages Router.
+
+## Perf UI
+- Images : `next/image` si media. Pas de carte montée sur la liste si non visible.

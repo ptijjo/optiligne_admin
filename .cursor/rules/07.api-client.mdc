@@ -1,0 +1,44 @@
+---
+description: Client HTTP admin — envelope data/error, Zod, Bearer, pas d’URL inventée
+globs: src/api/**/*.{ts,tsx},src/features/**/api.ts
+alwaysApply: false
+---
+
+# Client API
+
+## Source de vérité
+Backend : `C:\dev\optiligne\optiligne_back`.  
+Ne pas inventer de champs. Aligner sur les DTOs Go. IDs app = CUID ; IDs GTFS = strings feed. JSON **camelCase**.
+
+## Envelope (figée, comme le mobile)
+```ts
+type ApiSuccess<T> = { data: T; error?: never };
+type ApiFail = { data?: never; error: { code: string; message: string } };
+```
+- Succès : `data`. Erreur : `error.message` (FR) à l’UI ; `error.code` pour le branchement.
+- `GET /health` : hors envelope.
+
+## Zod
+- Un schéma par DTO, `z.infer<>` pour le type. `safeParse` à la frontière.
+- Échec de parse = erreur interne affichable, **pas** de crash.
+- Formulaires (login, coords) : même schémas, `zodResolver` (react-hook-form) si formulaire shadcn.
+
+## Client unique
+- Un seul `fetch` wrappé dans `src/api`. Timeout + `AbortSignal`.
+- Bearer ajouté **ici**, pas dans les pages. Refresh 401 : voir **03**.
+- Base URL : `config.apiUrl`.
+
+```ts
+// ❌ BAD
+const res = await fetch(url).then((r) => r.json() as Route);
+
+// ✅ GOOD
+const routes = await api.get('/catalog/routes', routesSchema, { query: scopeQuery() });
+```
+
+## Routes
+Catalogue lecture : mêmes query `operator_code` / `depot_code` que le mobile.  
+Mutations éditeur / auth : **uniquement** les paths documentés par l’API. Pas de `/admin/*` fantôme.
+
+Codes stables existants : `trip_not_found`, `route_not_found`, `scope_required`.  
+Auth (quand l’API les exposera) : `401` / `403` — à brancher, ne pas les ignorer.

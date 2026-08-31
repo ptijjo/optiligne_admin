@@ -1,0 +1,57 @@
+---
+description: Architecture Next.js App Router — shadcn, features, Server Components
+alwaysApply: true
+---
+
+# Architecture admin
+
+## Stack
+Next.js **App Router** · TypeScript · Tailwind · **shadcn/ui** (CLI, pas de lib runtime) · Zod · TanStack Query (données client) · Vitest + Testing Library + Playwright.
+
+Pas de Pages Router, pas de `getServerSideProps`, pas de CSS-in-JS (MUI / styled-components).
+
+## Arborescence cible
+```
+app/                          # routes — pages fines
+├── (auth)/login/             # public
+├── (app)/                    # protégé (proxy/middleware + layout)
+│   ├── layout.tsx
+│   ├── page.tsx              # liste lignes du périmètre
+│   └── routes/[id]/          # éditeur carte
+src/
+├── api/                      # fetch wrappé, envelope, refresh 401
+├── auth/                     # tokens, session, guards — pas de métier GTFS
+├── config/                   # env typée Zod
+├── features/
+│   └── <domaine>/            # catalog | editor | auth
+│       ├── api.ts            # URLs + schémas Zod
+│       ├── schemas.ts
+│       ├── hooks.ts
+│       ├── types.ts
+│       ├── components/
+│       └── __tests__/
+├── components/ui/            # shadcn uniquement (généré CLI)
+├── components/               # composites métier hors feature
+└── lib/                      # cn(), formatters — pas de métier
+```
+
+## Modules MVP autorisés (sans autre sans OK)
+`api`, `auth`, `config`, `lib`, `components/ui`,  
+features : `auth`, `catalog`, `editor`.
+
+## Couches
+```
+app/page (RSC) → feature hook ou fetch serveur → feature/api.ts (Zod) → src/api (+ Bearer)
+Carte / drag     → Client Component isolé dans features/editor
+```
+- Page : composition, **pas** de `fetch` brut ni de `localStorage`.
+- `src/api` : timeout, envelope, retry refresh — **sans** URLs métier.
+- URLs métier (`/catalog/...`, `/admin/...`) : uniquement dans `features/*/api.ts`.
+
+## Rendu
+- RSC + `generateMetadata` pour titres. Carte = **un** Client Component (dynamic import, `ssr: false` si Leaflet).
+- Liste lignes : serveur ou Query. **Interdit** de charger tout `shapes.txt` dans le bundle.
+
+## État
+- Session : cookies httpOnly (voir **03**). Catalogue / éditeur : TanStack Query.
+- Interdit : Redux, métier dans `layout.tsx`, recalcul d’itinéraire dans le navigateur.

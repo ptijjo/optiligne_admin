@@ -1,0 +1,42 @@
+---
+description: Auth admin JWT access + refresh — cookies httpOnly, jamais localStorage
+alwaysApply: true
+---
+
+# Authentification JWT
+
+L’admin est **le seul** client Optiligne authentifié. Le mobile reste sans compte (téléphone provisionné). Ne pas copier l’auth dans `optiligne_mobile`.
+
+## Tokens
+| Token | Durée | Stockage |
+|-------|--------|----------|
+| Access JWT | courte (ex. 15 min) | **Mémoire** et/ou cookie httpOnly **non** accessible au JS métier |
+| Refresh | longue (ex. 7 j) | Cookie **httpOnly** + `Secure` + `SameSite=Strict` (chemin `/auth/refresh`) |
+
+**Interdit** : `localStorage` / `sessionStorage` / query string pour un token. **Interdit** : JWT décodé pour autoriser une action sans l’API.
+
+## Flux
+1. `POST /auth/login` (Zod : email/identifiant + mot de passe) → Set-Cookie refresh + access.
+2. Appels API : header `Authorization: Bearer <access>` (ajouté **uniquement** dans `src/api`).
+3. `401` → un seul `POST /auth/refresh` en vol (mutex) → rejouer la requête. Échec refresh → logout + `/login`.
+4. Logout : révoquer refresh côté API + supprimer cookies.
+
+## Protection des routes
+- Edge (`proxy.ts` / `middleware.ts` selon version Next) : cookie de session présent → zone `(app)` ; sinon redirect `/login`.
+- Login déjà authentifié → redirect tableau de bord.
+- **Ne pas** se fier au seul edge : chaque mutation éditeur exige un JWT valide côté Go (`401` / `403`).
+
+## Frontière API
+Si `optiligne_back` n’expose pas encore `/auth/*` : **ne pas** inventer le contrat. Écran login + MSW pour les tests ; feature flag jusqu’au module API `auth` (OK backend requis — aujourd’hui l’API mobile est volontairement sans auth).
+
+## UX
+- Formulaire : labels, erreurs Zod en français, pas de message « JWT invalid » brut.
+- Session expirée : toast + retour login, **sans** perdre un brouillon carte si possible (`sessionStorage` **brouillon géo uniquement**, jamais le token).
+
+```ts
+// ❌ BAD
+localStorage.setItem('token', access);
+
+// ✅ GOOD
+// cookie httpOnly posé par l’API / Route Handler BFF ; src/api attache Bearer
+```

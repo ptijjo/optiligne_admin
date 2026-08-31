@@ -1,0 +1,35 @@
+---
+description: Périmètre MVP admin — inclus / exclus / ordre de build TDD
+alwaysApply: true
+---
+
+# Périmètre MVP admin
+
+## Client cible
+Exploitant / régulateur **au bureau**, réseau société. Pas le chauffeur dans le bus.
+
+## Inclus (V1)
+- Login JWT + refresh + routes protégées
+- Liste des **lignes scolaires du périmètre** (transporteur / dépôt)
+- Carte : tracé GTFS + arrêts ; **glisser un arrêt** ; **ajouter un waypoint**
+- Enregistrer → API (PostGIS + `GTFS/`) → confirmation ; indiquer que le mobile lira le feed **actif**
+- UI simple shadcn, FR, accessibilité clavier hors canvas carte
+- Health API au boot (bandeau si down)
+
+## Exclus (sans OK)
+Guidage live, comptes chauffeurs, store public, GTFS-RT, OTP voyageur, billetterie, dispatch, RH, édition libre de `stop_times` / calendrier, import zip GTFS synchrone depuis le browser, indexation SEO publique.
+
+## Ordre de build (TDD à chaque étape)
+1. Scaffold Next App Router + shadcn + config Zod + client HTTP + tests envelope
+2. Auth : schémas login, guard, refresh mocké MSW
+3. Catalogue périmètre (liste → fiche ligne)
+4. Carte lecture seule (shape + stops API)
+5. Drag arrêt + mutation (mock API d’abord)
+6. Waypoints + demande de recalcul OSRM (API)
+7. Feedback sync GTFS / version de feed
+8. Playwright smoke login + éditeur
+
+Ne pas commencer le drag carte avant que **catalogue + auth** soient verts.
+
+## Sync API
+Si `optiligne_back` n’a pas l’endpoint mutation : **ne pas** écrire un `shapes.txt` depuis Next. Écran lecture + flag « correction bientôt ». MSW = tests uniquement.

@@ -1,0 +1,47 @@
+---
+description: ADN produit Optiligne Admin — éditeur de correction GTFS pour l’exploitant
+alwaysApply: true
+---
+
+# Objectif produit — admin web
+
+## Nom
+**Optiligne Admin** — repo : `optiligne_admin`.  
+API : `C:\dev\optiligne\optiligne_back`. Mobile : `C:\dev\optiligne\optiligne_mobile`.  
+**Jamais** dupliquer le métier spatial, l’import GTFS ou le snap PostGIS dans le front.
+
+## Mission
+Permettre à l’**exploitant / régulateur** de **voir** et **corriger** les circuits scolaires **depuis le bureau**, avant rentrée ou nouveau contrat, **sans** sortir un véhicule.
+
+Dans 90 % des cas le GTFS est faux parce qu’un virage est coupé ou un arrêt décalé de ~50 m. L’admin affiche la ligne importée et offre un outil de retouche carte.
+
+## Ce que c’est
+Un **éditeur de correction** : carte, arrêts déplaçables, waypoints, recalcul de tracé (OSRM côté API), persistance PostGIS **et** dossier `GTFS/`, pour que le **mobile** guide sur le circuit corrigé.
+
+## Ce que ce n’est PAS
+- App chauffeur, guidage temps réel, calculateur voyageur
+- Billetterie, dispatch, RH, flotte
+- Site grand public indexé par Google (outil **interne** réseau société)
+
+## Vocabulaire (aligné API / mobile)
+
+| Métier | Technique |
+|--------|-----------|
+| Ligne | `route` |
+| Course | `trip` + `stop_times` |
+| Tracé | `shape` → LineString SRID **4326** |
+| Arrêt | `stop` — `ST_SetSRID(ST_MakePoint(lng, lat), 4326)` |
+| Point de passage | waypoint OSRM (hors GTFS stop) |
+| Transporteur | `operator` |
+| Dépôt / régie | `depot` |
+| Version de feed | `feed_version` (active) |
+
+## Stack (figée)
+- **Next.js App Router** + TypeScript + **Tailwind CSS** + **shadcn/ui**
+- Auth : **JWT access** + **refresh token** (voir **03**)
+- Validation : **Zod** à chaque frontière (env, formulaires, réponses API)
+- Carte interactive : composant client uniquement (voir **11**)
+- Données : **uniquement** `optiligne_back` — pas de PostGIS / OSRM / fichiers GTFS dans Next
+
+## Principe
+Corriger au calme → API met à jour PostGIS + `GTFS/` → nouvelle version de feed → le mobile lit le catalogue **actif**. Pas de métier spatial dans le navigateur.

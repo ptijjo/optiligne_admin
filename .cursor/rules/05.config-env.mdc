@@ -1,0 +1,34 @@
+---
+description: Config admin via NEXT_PUBLIC_* et secrets serveur — Zod au boot
+alwaysApply: true
+---
+
+# Configuration
+
+## Règle
+- Config **uniquement** via `.env` / `.env.local`, lue par `src/config` (schéma Zod).
+- **Ne jamais** committer `.env` / `.env.local`.
+- Secrets (JWT, cookie, URL interne) : **sans** préfixe `NEXT_PUBLIC_`.
+
+## Variables attendues
+
+| Variable | Rôle |
+|----------|------|
+| `NEXT_PUBLIC_API_URL` | Base HTTP de `optiligne_back` (browser) |
+| `API_URL` | Base HTTP serveur (RSC / Route Handlers) si distincte |
+| `NEXT_PUBLIC_APP_ENV` | `development` / `preview` / `production` |
+| `AUTH_COOKIE_NAME` | Nom cookie refresh (serveur) |
+
+Pas de `DATABASE_URL`, chemin `GTFS/`, clés OSRM dans le front — **API uniquement**.
+
+## Chargement
+- `src/config/index.ts` : `safeParse` au boot. URL API absente → **fail fast** en dev.
+- Accès : `config.apiUrl` — **interdit** `process.env.NEXT_PUBLIC_*` éparpillé dans les features.
+
+```ts
+// ❌ BAD
+fetch(process.env.NEXT_PUBLIC_API_URL + '/catalog/routes');
+
+// ✅ GOOD
+const data = await api.get('/catalog/routes', routesSchema, { query: scopeQuery() });
+```

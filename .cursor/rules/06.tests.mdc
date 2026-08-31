@@ -1,0 +1,37 @@
+---
+description: TDD admin — Vitest, Testing Library, Playwright, couverture 80 %
+alwaysApply: true
+---
+
+# Tests
+
+## Priorité : intégration
+Un comportement exploitant-visible = **au moins un test d’intégration**.
+
+Couvrir obligatoirement :
+- Client HTTP : envelope `{ data }` / `{ error }`, timeout, `401` → refresh → retry, logout si refresh KO
+- Zod : succès + payload inattendu (pas de crash UI)
+- Catalogue : transporteur A ≠ lignes B
+- Éditeur : déplacement arrêt → body `{ lat, lng }` validé ; waypoint ajouté dans l’ordre
+- Auth : login Zod, route protégée sans cookie → `/login`
+- Accessibilité : nom accessible des boutons carte (clavier / `getByRole`)
+
+## Outils
+- **Vitest** + **Testing Library** (`@testing-library/react`) + `user-event`
+- **MSW** : réponses **identiques** à `optiligne_back`
+- Carte : mock du moteur (Leaflet/MapLibre) — pas de tuiles OSM en unitaire
+- **Playwright** : smoke login + ouverture éditeur (après Jest/Vitest verts). Pas d’E2E comme seul filet.
+
+## TDD
+1. Test d’intégration rouge (contrat API / auth / save).
+2. Implémenter.
+3. Unitaire ciblé : schémas Zod, mapping erreur, format coordonnées.
+
+## Interdit
+- Appeler l’API **production** ou ouvrir `GTFS/` réel.
+- Snapshots comme seul test d’un flux.
+- Tests sans asserter `data` / `error.code`.
+- Recalculer un itinéraire OSRM dans le client « pour le test ».
+
+## CI
+Rouge si tests rouges ou couverture `src/` < **80 %** (exclure `components/ui` shadcn).

@@ -1,0 +1,46 @@
+---
+description: Modularité Next — features, pas de fetch dans app/, pas de fourre-tout
+alwaysApply: true
+---
+
+# Modularité (obligatoire)
+
+## Principe
+Une responsabilité = un module. **Aucun** `utils.ts` fourre-tout. **Aucun** métier dans `app/layout.tsx`.
+
+## `app/` — routes uniquement
+Composition + `metadata` + branchement hooks / RSC fetch via features.  
+**Interdit** dans `app/` : `fetch` vers l’API métier, schémas Zod d’API, hex hardcodés, `localStorage`.
+
+## `src/features/<domaine>/`
+```
+src/features/editor/
+├── api.ts              # appels + Zod
+├── schemas.ts
+├── hooks.ts
+├── types.ts
+├── components/         # MapEditor, StopMarker (pas Button shadcn)
+└── __tests__/
+```
+- Nouveau `src/features/*` : **approbation** (sauf `auth`, `catalog`, `editor`).
+- Une feature n’importe pas les `components/` d’une autre ; partager via `src/components` ou `src/lib`.
+
+## Transversal
+
+| Besoin | Où |
+|--------|-----|
+| Envelope, Bearer, refresh | `src/api` |
+| Login, cookies, guards | `src/auth` |
+| Primitives shadcn | `src/components/ui` |
+| Env | `src/config` |
+| `cn()`, dates | `src/lib` |
+
+`src/api` **n’a pas** d’URL métier. `features/editor` **n’appelle pas** OSRM ni le disque `GTFS/`.
+
+## Checklist feature
+- [ ] Test d’intégration rouge d’abord
+- [ ] Zod aligné DTO API
+- [ ] Page sans `fetch` brut
+- [ ] Périmètre toujours passé
+- [ ] Client Component limité à l’interaction
+- [ ] Pas de nouvelle dépendance majeure sans OK

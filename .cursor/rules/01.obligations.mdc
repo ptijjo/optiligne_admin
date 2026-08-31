@@ -1,0 +1,36 @@
+---
+description: Obligations absolues — TDD, modules, auth, pas de métier spatial dans le front
+alwaysApply: true
+---
+
+# Obligations (non négociables)
+
+## Avant toute action
+1. Lire **00.Objectif**, **01.Obligations**, et les règles `.cursor/rules/` pertinentes.
+2. Lire **08.MVP-Perimetre** : rien hors périmètre sans approbation.
+3. Identifier le **module** (`src/features/<domaine>/`). **Aucun** nouveau feature-module sans **OK explicite**.
+4. Flux multi-étapes (login, save arrêt, recalcul OSRM, sync GTFS) : **commentaires d’étapes numérotés**.
+
+## TDD obligatoire
+1. Écrire le test **avant** le comportement (intégration en priorité : client API, auth, éditeur).
+2. Cycle : rouge → vert → refactor.
+3. Pas de code métier sans test rouge d’abord (exception minimale : `layout.tsx` wiring, `components.json`).
+4. Couverture **≥ 80 %** sur `src/` (hors `components/ui` shadcn généré). CI rouge en dessous.
+
+## Découpage
+- Voir **09.Modularite**. Server Components par défaut. `"use client"` **uniquement** si interaction (carte, drag, formulaire).
+- Page fine → hook / server fetch → `feature/api.ts` (Zod) → `src/api`.
+- Types / Zod : coller aux DTOs de `optiligne_back`. IDs app = **CUID string**. IDs GTFS = **strings du feed**. Jamais `number`.
+- **Interdit** : `ST_LineLocatePoint`, OSRM, écriture `GTFS/*.txt`, snap PostGIS dans le front.
+
+## Approbations requises
+- Nouveau `src/features/*` hors liste **02** / **08**
+- Nouvelle dépendance majeure (état global, autre moteur de carte, autre auth)
+- Feature hors **08.MVP-Perimetre**
+- Stocker un token en `localStorage` / `sessionStorage` (interdit — voir **03**)
+- Inventer un contrat API que `optiligne_back` n’expose pas encore
+
+## Communication
+- Réponses en **français**. UI et `error.message` : français.
+- Ne jamais committer `.env`, secrets, dumps GTFS.
+- Si l’API n’a pas encore l’endpoint : **feature flag / écran désactivé**, pas un contrat inventé. MSW = tests uniquement.

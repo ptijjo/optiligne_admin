@@ -1,0 +1,37 @@
+---
+description: Après correction — MAJ dossier GTFS/, feed actif, impact app mobile
+alwaysApply: true
+---
+
+# Sync GTFS et application mobile
+
+## Chaîne de vérité
+```
+Geste admin → API Go → PostGIS (feed actif) + fichiers GTFS/ (stops.txt, shapes.txt)
+            → feed_version / invalidation catalogue
+            → mobile (TanStack Query) lit le même catalogue HTTP
+```
+Le front admin **ne touche pas** au disque `optiligne_back/GTFS/`. Le job historique `cmd/shapefix` et l’importer restent côté API.
+
+## Dossier GTFS
+- Source officielle : `optiligne_back/GTFS/` (`.txt`, pas un zip dans le browser).
+- Une correction d’arrêt / de shape **doit** être répercutée dans `stops.txt` et/ou `shapes.txt` **par l’API**, sinon le prochain `cmd/importer` écrase PostGIS avec l’ancien feed.
+- Checksum / `feed_info` : l’API décide comment versionner (nouvelle `feed_version` ou patch du feed actif). Le front affiche la **version active** renvoyée, il ne la calcule pas.
+
+## Mobile (`optiligne_mobile`)
+- Le mobile **n’a pas** d’éditeur. Il consomme `GET /catalog/*` (périmètre dépôt) + shapes de guidage.
+- Après save admin : invalider le cache Query admin ; l’app relit l’API (focus / TTL). **Ne pas** pousser un patch GTFS dans le binaire mobile.
+- **Interdit** de casser une session de guidage en cours sans le dire : si l’API refuse (course guidée), afficher `error.message`.
+
+## UX après Enregistrer
+- Succès : « Tracé enregistré. Les téléphones du dépôt utiliseront ce circuit au prochain chargement du catalogue. »
+- Échec partiel (PostGIS OK, fichiers KO) : message API, pas un faux succès.
+- Pas de toast technique (`shapes.txt line 120441`).
+
+## TDD admin
+- Save succès → message de sync (copie), pas d’appel disque.
+- Save `409` / course active → bandeau d’erreur, carte reste en preview.
+- **Interdit** : test qui écrit dans `GTFS/` depuis `optiligne_admin`.
+
+## Si l’API n’implémente pas encore la persistance fichiers
+Lecture carte uniquement + flag. Documenter le trou ; ne pas « simuler » un export GTFS dans Next.

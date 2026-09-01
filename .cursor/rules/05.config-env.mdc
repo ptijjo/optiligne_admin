@@ -6,8 +6,8 @@ alwaysApply: true
 # Configuration
 
 ## Règle
-- Config **uniquement** via `.env` / `.env.local`, lue par `src/config` (schéma Zod).
-- **Ne jamais** committer `.env` / `.env.local`.
+- Config **uniquement** via `.env`, lue par `src/config` (schéma Zod).
+- **Ne jamais** committer `.env`.
 - Secrets (JWT, cookie, URL interne) : **sans** préfixe `NEXT_PUBLIC_`.
 
 ## Variables attendues

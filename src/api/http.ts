@@ -1,7 +1,7 @@
 import { envelopeSchema } from '@/api/envelope';
 import { ApiError } from '@/api/errors';
 import { getAccessToken, setAccessToken } from '@/auth/session';
-import { getConfig } from '@/config';
+import { resolveApiBaseUrl } from '@/lib/api-base-url';
 import { z } from 'zod';
 
 const TIMEOUT_MS = 20_000;
@@ -56,7 +56,7 @@ export async function send<T>(
   dataSchema: z.ZodType<T>,
   options: HttpOptions = {},
 ): Promise<T> {
-  const { apiUrl } = getConfig();
+  const apiUrl = resolveApiBaseUrl();
   const url = `${apiUrl}${withQuery(path, options.query)}`;
   const headers: Record<string, string> = {
     Accept: 'application/json',

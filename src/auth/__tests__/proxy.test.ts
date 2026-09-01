@@ -22,6 +22,11 @@ describe('proxy — garde de session', () => {
     expect(res.headers.get('location')).toBeNull();
   });
 
+  it('laisse /api/upstream sans cookie (proxy API)', () => {
+    const res = proxy(request('/api/upstream/health'));
+    expect(res.headers.get('location')).toBeNull();
+  });
+
   it('redirige vers /login si le cookie de session est absent', () => {
     const res = proxy(request('/'));
     expect(res.headers.get('location')).toBe('http://localhost:3000/login');

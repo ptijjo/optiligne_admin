@@ -40,6 +40,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+# Runtime Coolify : définir API_URL vers le service interne Go (ex. http://optiligne-back:9191).
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates \

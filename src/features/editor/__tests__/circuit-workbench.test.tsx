@@ -18,6 +18,7 @@ const draftMatin = {
   routeId: 'R1',
   shortName: '57S012',
   longName: 'Collège',
+  routeType: 712,
   tripId: 'T-MATIN',
   shapeId: 'S1',
   feedVersion: 'v1',
@@ -79,10 +80,10 @@ describe('CircuitWorkbench — horaires puis tracé', () => {
     );
 
     expect(await screen.findByText('07:15')).toBeInTheDocument();
-    expect(await screen.findByText('Mairie')).toBeInTheDocument();
+    expect((await screen.findAllByText('Mairie')).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('button', { name: /DÉPÔT/ }));
-    expect(await screen.findByText('École')).toBeInTheDocument();
+    expect((await screen.findAllByText('École')).length).toBeGreaterThan(0);
     expect(draftIds).toContain('T-SOIR');
   });
 });

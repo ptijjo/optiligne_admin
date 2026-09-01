@@ -54,6 +54,19 @@ export function patchStop(
   );
 }
 
+export function patchRouteType(
+  routeId: string,
+  operatorCode: string,
+  depotCode: string,
+  routeType: number,
+): Promise<Draft> {
+  return api.patch(
+    `/admin/routes/${encodeURIComponent(routeId)}/type`,
+    { routeType, operatorCode, depotCode },
+    draftSchema,
+  );
+}
+
 export function recalculate(
   routeId: string,
   operatorCode: string,

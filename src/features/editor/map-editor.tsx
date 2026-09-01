@@ -7,6 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { CatalogStop } from '@/features/catalog/types';
+import {
+  classifyRoute,
+  kindToRouteType,
+  ROUTE_KIND_OPTIONS,
+  routeKindLabel,
+  type RouteKind,
+} from '@/features/catalog/kind';
 import { useDraft, useEditorMutations, useStopSearch } from '@/features/editor/hooks';
 import type { Draft, EditorStop, LineString, Waypoint } from '@/features/editor/schemas';
 import { stopPatchSchema, waypointSchema } from '@/features/editor/schemas';
@@ -68,7 +75,8 @@ export function MapEditor({ routeId, operatorCode, depotCode, tripId, stopTimes 
 }
 
 function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
-  const { patch, recalc, match, save } = mutations;
+  const { patch, patchType, recalc, match, save } = mutations;
+  const [routeKind, setRouteKind] = useState<RouteKind>(() => classifyRoute(data.routeType));
   const [stops, setStops] = useState<EditorStop[]>(data.stops);
   const [shape, setShape] = useState<LineString>(data.shape);
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
@@ -251,6 +259,38 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
         </div>
       </div>
       <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto" aria-label="Arrêts et actions">
+        <div className="flex flex-col gap-2 rounded-md border border-border p-2">
+          <p className="text-sm font-medium">
+            {data.shortName} — {data.longName}
+          </p>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="route-kind">Type de ligne</Label>
+            <select
+              id="route-kind"
+              className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+              value={routeKind}
+              disabled={patchType.isPending}
+              onChange={async (e) => {
+                const next = e.target.value as RouteKind;
+                const previous = routeKind;
+                setRouteKind(next);
+                try {
+                  await patchType.mutateAsync(kindToRouteType(next));
+                  toast.success(`Type mis à jour : ${routeKindLabel(next)}.`);
+                } catch (err) {
+                  setRouteKind(previous);
+                  toast.error(isApiError(err) ? err.message : 'Impossible de changer le type.');
+                }
+              }}
+            >
+              {ROUTE_KIND_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         <div className="flex flex-col gap-2">
           <Button
             type="button"

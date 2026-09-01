@@ -20,6 +20,27 @@ export function classifyRoute(routeType: number): RouteKind {
   }
 }
 
+export function kindToRouteType(kind: RouteKind): number {
+  switch (kind) {
+    case 'reguliere':
+      return 204;
+    case 'scolaire':
+      return 712;
+    case 'associee':
+      return 713;
+    default: {
+      const _exhaustive: never = kind;
+      return _exhaustive;
+    }
+  }
+}
+
+export const ROUTE_KIND_OPTIONS: { value: RouteKind; label: string }[] = [
+  { value: 'scolaire', label: 'Scolaire' },
+  { value: 'associee', label: 'Associée' },
+  { value: 'reguliere', label: 'Régulière' },
+];
+
 export function routeKindLabel(kind: RouteKind): string {
   switch (kind) {
     case 'reguliere':

@@ -31,6 +31,7 @@ const draftR1 = {
   routeId: 'R1',
   shortName: '57S012',
   longName: 'Collège',
+  routeType: 713,
   tripId: 'T1',
   shapeId: 'S1',
   feedVersion: 'v1',
@@ -83,6 +84,26 @@ describe('MapEditor — brouillon local', () => {
     expect(screen.getByLabelText('Longitude')).toHaveValue(6.928);
     expect(screen.getByText('Version feed : v1')).toBeInTheDocument();
     expect(screen.getAllByText('Mairie').length).toBeGreaterThan(0);
+  });
+
+  it('permet de changer le type de ligne', async () => {
+    const user = userEvent.setup();
+    let savedType = 0;
+    server.use(
+      http.get(`${API}/admin/routes/R1`, () => jsonOk(draftR1)),
+      http.patch(`${API}/admin/routes/R1/type`, async ({ request }) => {
+        const body = (await request.json()) as { routeType: number };
+        savedType = body.routeType;
+        return jsonOk({ ...draftR1, routeType: body.routeType });
+      }),
+    );
+    renderEditor('R1');
+
+    const select = await screen.findByLabelText('Type de ligne');
+    expect(select).toHaveValue('associee');
+    await user.selectOptions(select, 'scolaire');
+    await waitFor(() => expect(savedType).toBe(712));
+    expect(select).toHaveValue('scolaire');
   });
 
   it('affiche l’horaire d’arrêt de la course (lecture seule)', async () => {

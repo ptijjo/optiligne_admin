@@ -1,6 +1,6 @@
 'use client';
 
-import { getDraft, matchShape, patchStop, recalculate, saveDraft, searchStops } from '@/features/editor/api';
+import { getDraft, matchShape, patchRouteType, patchStop, recalculate, saveDraft, searchStops } from '@/features/editor/api';
 import type { EditorStop, LineString, Waypoint } from '@/features/editor/schemas';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -23,12 +23,19 @@ export function useStopSearch(query: string) {
 
 export function useEditorMutations(routeId: string, operatorCode: string, depotCode: string) {
   const client = useQueryClient();
-  const invalidate = () =>
+  const invalidate = () => {
     client.invalidateQueries({ queryKey: ['admin', 'draft', routeId, operatorCode, depotCode] });
+    client.invalidateQueries({ queryKey: ['catalog', 'routes', operatorCode, depotCode] });
+  };
 
   const patch = useMutation({
     mutationFn: (input: { stopId: string; lat: number; lng: number }) =>
       patchStop(routeId, operatorCode, depotCode, input.stopId, input.lat, input.lng),
+    onSuccess: invalidate,
+  });
+
+  const patchType = useMutation({
+    mutationFn: (routeType: number) => patchRouteType(routeId, operatorCode, depotCode, routeType),
     onSuccess: invalidate,
   });
 
@@ -48,5 +55,5 @@ export function useEditorMutations(routeId: string, operatorCode: string, depotC
     onSuccess: invalidate,
   });
 
-  return { patch, recalc, match, save };
+  return { patch, patchType, recalc, match, save };
 }

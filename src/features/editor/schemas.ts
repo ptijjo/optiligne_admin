@@ -23,6 +23,7 @@ export const draftSchema = z.object({
   routeId: z.string(),
   shortName: z.string(),
   longName: z.string(),
+  routeType: z.number(),
   tripId: z.string(),
   shapeId: z.string(),
   feedVersion: z.string(),

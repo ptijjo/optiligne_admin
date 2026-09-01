@@ -1,4 +1,4 @@
-import { classifyRoute, filterRoutes, routeKindLabel } from '@/features/catalog/kind';
+import { classifyRoute, filterRoutes, kindToRouteType, routeKindLabel } from '@/features/catalog/kind';
 import type { Route } from '@/features/catalog/types';
 import { describe, expect, it } from 'vitest';
 
@@ -35,5 +35,13 @@ describe('filterRoutes — périmètre', () => {
   it('recherche dans le nom court et long', () => {
     const out = filterRoutes(routes, 'creutzwald', 'all');
     expect(out.map((r) => r.shortName)).toEqual(['57R004']);
+  });
+});
+
+describe('kindToRouteType', () => {
+  it('convertit un type métier en route_type GTFS', () => {
+    expect(kindToRouteType('scolaire')).toBe(712);
+    expect(kindToRouteType('associee')).toBe(713);
+    expect(kindToRouteType('reguliere')).toBe(204);
   });
 });

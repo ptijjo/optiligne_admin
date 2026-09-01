@@ -17,6 +17,11 @@ describe('proxy — garde de session', () => {
     expect(res.headers.get('location')).toBeNull();
   });
 
+  it('laisse /api/health sans cookie (healthcheck Docker)', () => {
+    const res = proxy(request('/api/health'));
+    expect(res.headers.get('location')).toBeNull();
+  });
+
   it('redirige vers /login si le cookie de session est absent', () => {
     const res = proxy(request('/'));
     expect(res.headers.get('location')).toBe('http://localhost:3000/login');

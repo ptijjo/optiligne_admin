@@ -6,6 +6,7 @@ export function proxy(request: NextRequest) {
   if (
     pathname.startsWith('/login') ||
     pathname.startsWith('/api/auth') ||
+    pathname === '/api/health' ||
     pathname.startsWith('/_next') ||
     pathname === '/favicon.ico'
   ) {

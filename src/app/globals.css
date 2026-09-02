@@ -132,6 +132,14 @@
   }
 }
 
+/* Safe area (encoche / barre d’accueil mobile) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
 .ol-stop-icon span {
   display: block;
   width: 18px;

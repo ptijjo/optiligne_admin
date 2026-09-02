@@ -220,8 +220,8 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
   };
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_16rem]">
-      <div className="relative min-h-80 overflow-hidden rounded-lg border border-border lg:min-h-0">
+    <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_18rem] lg:overflow-hidden">
+      <div className="relative h-[min(55dvh,24rem)] shrink-0 overflow-hidden rounded-lg border border-border sm:h-[min(60dvh,28rem)] lg:h-auto lg:min-h-0 lg:flex-1">
         <div className="absolute inset-0">
         <MapCanvas
           shape={shape}
@@ -258,7 +258,7 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
         />
         </div>
       </div>
-      <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto" aria-label="Arrêts et actions">
+      <aside className="flex flex-col gap-3 pb-6 lg:min-h-0 lg:overflow-y-auto lg:pb-0" aria-label="Arrêts et actions">
         <div className="flex flex-col gap-2 rounded-md border border-border p-2">
           <p className="text-sm font-medium">
             {data.shortName} — {data.longName}

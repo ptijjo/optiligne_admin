@@ -99,12 +99,13 @@ export function RouteList({ operatorCode, depotCode }: { operatorCode: string; d
           }}
         />
       </div>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Type de ligne">
+      <div className="-mx-1 flex flex-wrap gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Type de ligne">
         {FILTERS.map((filter) => (
           <Button
             key={filter.id}
             type="button"
-            size="lg"
+            size="sm"
+            className="shrink-0 sm:h-9 sm:px-2.5 sm:text-sm"
             variant={kind === filter.id ? 'default' : 'outline'}
             aria-pressed={kind === filter.id}
             onClick={() => {
@@ -126,15 +127,15 @@ export function RouteList({ operatorCode, depotCode }: { operatorCode: string; d
               <li key={route.id}>
                 <Link
                   href={`/routes/${encodeURIComponent(route.id)}`}
-                  className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex min-h-11 flex-col gap-2 rounded-lg border border-border bg-card px-3 py-3 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4"
                 >
                   <span className="flex min-w-0 flex-col gap-1">
                     <span className="font-medium">{route.shortName}</span>
                     <span className="text-sm text-muted-foreground">{route.longName}</span>
                   </span>
-                  <span className="flex shrink-0 items-center gap-2">
+                  <span className="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
                     <Badge variant={badgeVariant(routeKind)}>{routeKindLabel(routeKind)}</Badge>
-                    <span className="text-sm text-primary">Corriger</span>
+                    <span className="text-sm font-medium text-primary">Corriger</span>
                   </span>
                 </Link>
               </li>
@@ -143,25 +144,33 @@ export function RouteList({ operatorCode, depotCode }: { operatorCode: string; d
         </ul>
       )}
       {visible.length > ROUTES_PER_PAGE ? (
-        <nav className="flex items-center justify-between gap-3" aria-label="Pagination des lignes">
+        <nav className="flex items-center justify-between gap-2 sm:gap-3" aria-label="Pagination des lignes">
           <Button
             type="button"
             variant="outline"
+            size="sm"
+            className="sm:h-8"
             disabled={paged.page <= 1}
+            aria-label="Page précédente"
             onClick={() => setPage((p) => p - 1)}
           >
-            Page précédente
+            <span className="sm:hidden">Préc.</span>
+            <span className="hidden sm:inline">Page précédente</span>
           </Button>
-          <p className="text-sm text-muted-foreground">
+          <p className="shrink-0 text-sm text-muted-foreground">
             Page {paged.page} sur {paged.pageCount}
           </p>
           <Button
             type="button"
             variant="outline"
+            size="sm"
+            className="sm:h-8"
             disabled={paged.page >= paged.pageCount}
+            aria-label="Page suivante"
             onClick={() => setPage((p) => p + 1)}
           >
-            Page suivante
+            <span className="sm:hidden">Suiv.</span>
+            <span className="hidden sm:inline">Page suivante</span>
           </Button>
         </nav>
       ) : null}

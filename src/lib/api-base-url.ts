@@ -1,9 +1,16 @@
 import { getConfig } from '@/config';
 
-/** URL de base des appels métier (navigateur → proxy Next en prod Docker). */
+function isLocalDevHost(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+}
+
+/** URL de base des appels métier (navigateur → proxy Next hors dev local). */
 export function resolveApiBaseUrl(): string {
-  const appEnv = process.env.NEXT_PUBLIC_APP_ENV ?? 'development';
-  if (typeof window !== 'undefined' && appEnv === 'production') {
+  if (typeof window === 'undefined') {
+    return getConfig().apiUrl;
+  }
+  // Évite mixed content (HTTPS → HTTP) et CORS si le build n’a pas NEXT_PUBLIC_APP_ENV=production.
+  if (!isLocalDevHost(window.location.hostname)) {
     return '/api/upstream';
   }
   return getConfig().apiUrl;

@@ -30,20 +30,23 @@ export function TripSchedule({
 }: Props) {
   return (
     <section className="flex shrink-0 flex-col gap-2" aria-label="Horaires des courses">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:gap-3">
+        <div className="flex w-full flex-col gap-1 sm:w-auto">
           <Label htmlFor="service-date">Jour de service</Label>
           <Input
             id="service-date"
             type="date"
             value={date}
             onChange={(e) => onDateChange(e.target.value)}
-            className="max-w-48"
+            className="w-full sm:max-w-48"
           />
         </div>
-        <p className="pb-1 text-xs text-muted-foreground">
-          Lecture seule. Le tracé corrigé s’applique à toute la ligne (tous les jours), pas
-          seulement à la course affichée.
+        <p className="pb-1 text-xs text-muted-foreground sm:max-w-xl">
+          Lecture seule. Le tracé corrigé s’applique à toute la ligne.
+          <span className="hidden sm:inline">
+            {' '}
+            (tous les jours), pas seulement à la course affichée.
+          </span>
         </p>
       </div>
       {isPending ? (
@@ -63,7 +66,7 @@ export function TripSchedule({
         <p className="text-muted-foreground">Aucune course ce jour-là.</p>
       ) : null}
       {!isPending && trips && trips.length > 0 ? (
-        <ul className="flex gap-2 overflow-x-auto pb-1">
+        <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch]">
           {trips.map((trip) => {
             const label = `${formatDeparture(trip.departureSec)} ${trip.headsign || 'Course'}`;
             return (

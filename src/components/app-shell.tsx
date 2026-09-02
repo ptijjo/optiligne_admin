@@ -26,12 +26,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
-      <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-border px-4">
-        <p className="font-semibold text-primary">Optiligne Admin</p>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">{user.email}</span>
-          <Button type="button" variant="outline" onClick={() => logout()}>
-            Déconnexion
+      <header className="flex min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2 sm:min-h-14 sm:px-4">
+        <p className="truncate text-sm font-semibold text-primary sm:text-base">Optiligne Admin</p>
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <span className="hidden max-w-48 truncate text-sm text-muted-foreground sm:inline md:max-w-xs">
+            {user.email}
+          </span>
+          <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => logout()}>
+            <span className="sm:hidden">Quitter</span>
+            <span className="hidden sm:inline">Déconnexion</span>
           </Button>
         </div>
       </header>

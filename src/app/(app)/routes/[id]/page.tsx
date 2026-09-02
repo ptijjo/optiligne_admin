@@ -12,13 +12,13 @@ export default function RouteEditorPage({ params }: { params: Promise<{ id: stri
     return null;
   }
   return (
-    <main className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden p-3">
-      <div className="flex shrink-0 flex-wrap items-baseline gap-x-4 gap-y-1">
+    <main className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2 sm:p-3 lg:overflow-hidden">
+      <div className="flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-1">
         <Link href="/" className="text-sm text-primary underline-offset-4 hover:underline">
           ← Lignes
         </Link>
-        <h1 className="text-lg font-bold">Corriger le circuit</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-base font-bold sm:text-lg">Corriger le circuit</h1>
+        <p className="hidden text-sm text-muted-foreground sm:inline">
           Horaires en lecture seule. La carte occupe le reste de l’écran.
         </p>
       </div>

@@ -1,6 +1,9 @@
 import { backendApiUrl } from '@/auth/backend-url';
 import { NextResponse, type NextRequest } from 'next/server';
 
+/** Save / shapes.txt peut dépasser 60s sur un gros feed. */
+export const maxDuration = 180;
+
 type RouteContext = { params: Promise<{ path: string[] }> };
 
 function upstreamUrl(request: NextRequest, path: string[]): URL {

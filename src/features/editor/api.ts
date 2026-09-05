@@ -117,5 +117,6 @@ export function saveDraft(
     `/admin/routes/${encodeURIComponent(routeId)}/save`,
     { operatorCode, depotCode, tripId, stops, shape },
     saveResponseSchema,
+    { timeoutMs: 120_000 },
   );
 }

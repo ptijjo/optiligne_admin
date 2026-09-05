@@ -120,7 +120,11 @@ export async function send<T>(
 
   const parsed = envelopeSchema(dataSchema).safeParse(json);
   if (!parsed.success || parsed.data.data === undefined) {
-    throw new ApiError(res.status, 'internal', 'Une erreur interne est survenue.');
+    throw new ApiError(
+      res.status,
+      'invalid_response',
+      'Réponse API inattendue (données incomplètes). Rechargez la page ou choisissez une autre course.',
+    );
   }
 
   return parsed.data.data;

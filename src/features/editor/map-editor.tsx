@@ -279,6 +279,11 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
                   await patchType.mutateAsync(kindToRouteType(next));
                   toast.success(`Type mis à jour : ${routeKindLabel(next)}.`);
                 } catch (err) {
+                  // PostGIS peut avoir réussi alors que routes.txt a échoué.
+                  if (isApiError(err) && err.code === 'gtfs_file_failed') {
+                    toast.error(err.message);
+                    return;
+                  }
                   setRouteKind(previous);
                   toast.error(isApiError(err) ? err.message : 'Impossible de changer le type.');
                 }

@@ -20,7 +20,7 @@ export function classifyRoute(routeType: number): RouteKind {
   }
 }
 
-export function kindToRouteType(kind: RouteKind): number {
+export function kindToRouteType(kind: RouteKind): 204 | 712 | 713 {
   switch (kind) {
     case 'reguliere':
       return 204;

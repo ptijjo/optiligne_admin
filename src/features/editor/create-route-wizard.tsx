@@ -667,7 +667,7 @@ export function CreateRouteWizard({ operatorCode, depotCode }: Props) {
             setShape(moveVertex(shape, index, lat, lng));
           }}
           onShapeRedraw={(stroke) => {
-            setShape(replaceStroke(shape, stroke, pinned));
+            setShape(replaceStroke(shape, stroke));
           }}
         />
       </div>

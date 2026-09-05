@@ -40,6 +40,47 @@ export const saveResponseSchema = z.object({
   message: z.string(),
 });
 
+export const createRouteResponseSchema = z.object({
+  routeId: z.string().min(1),
+  tripId: z.string().min(1),
+  feedVersion: z.string(),
+  message: z.string(),
+});
+
+export const createCalendarSchema = z
+  .object({
+    monday: z.boolean(),
+    tuesday: z.boolean(),
+    wednesday: z.boolean(),
+    thursday: z.boolean(),
+    friday: z.boolean(),
+    saturday: z.boolean(),
+    sunday: z.boolean(),
+    startDate: z.string().min(8),
+    endDate: z.string().min(8),
+  })
+  .refine(
+    (c) => c.monday || c.tuesday || c.wednesday || c.thursday || c.friday || c.saturday || c.sunday,
+    { message: 'Au moins un jour de circulation.' },
+  );
+
+export const createTripTimesSchema = z.object({
+  headsign: z.string(),
+  arrivalSecs: z.array(z.number().int().gte(0)).min(2),
+});
+
+export const createRouteBodySchema = z.object({
+  operatorCode: z.string().min(1),
+  depotCode: z.string().min(1),
+  shortName: z.string().min(1),
+  longName: z.string().min(1),
+  routeType: z.union([z.literal(204), z.literal(712), z.literal(713)]),
+  stops: z.array(editorStopSchema).min(2),
+  shape: lineStringSchema,
+  calendar: createCalendarSchema,
+  trips: z.array(createTripTimesSchema).min(1),
+});
+
 export const stopPatchSchema = z.object({
   stopId: z.string().min(1),
   lat: z.number().gte(-90).lte(90),
@@ -58,3 +99,7 @@ export type Waypoint = z.infer<typeof waypointSchema>;
 export type Draft = z.infer<typeof draftSchema>;
 export type LineString = z.infer<typeof lineStringSchema>;
 export type StopHit = z.infer<typeof stopHitSchema>;
+export type CreateRouteBody = z.infer<typeof createRouteBodySchema>;
+export type CreateRouteResponse = z.infer<typeof createRouteResponseSchema>;
+export type CreateCalendar = z.infer<typeof createCalendarSchema>;
+export type CreateTripTimes = z.infer<typeof createTripTimesSchema>;

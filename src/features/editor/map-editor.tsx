@@ -221,7 +221,7 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
 
   return (
     <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_18rem] lg:overflow-hidden">
-      <div className="relative h-[min(55dvh,24rem)] shrink-0 overflow-hidden rounded-lg border border-border sm:h-[min(60dvh,28rem)] lg:h-auto lg:min-h-0 lg:flex-1">
+      <div className="relative h-[min(55dvh,24rem)] shrink-0 overflow-hidden rounded-md border border-border bg-card sm:h-[min(60dvh,28rem)] lg:h-auto lg:min-h-0 lg:flex-1">
         <div className="absolute inset-0">
         <MapCanvas
           shape={shape}
@@ -259,15 +259,16 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
         </div>
       </div>
       <aside className="flex flex-col gap-3 pb-6 lg:min-h-0 lg:overflow-y-auto lg:pb-0" aria-label="Arrêts et actions">
-        <div className="flex flex-col gap-2 rounded-md border border-border p-2">
-          <p className="text-sm font-medium">
-            {data.shortName} — {data.longName}
-          </p>
+        <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-3">
+          <p className="font-mono text-sm font-medium tracking-tight">{data.shortName}</p>
+          <p className="text-xs text-muted-foreground">{data.longName}</p>
           <div className="flex flex-col gap-1">
-            <Label htmlFor="route-kind">Type de ligne</Label>
+            <Label htmlFor="route-kind" className="text-xs text-muted-foreground">
+              Type de ligne
+            </Label>
             <select
               id="route-kind"
-              className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+              className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
               value={routeKind}
               disabled={patchType.isPending}
               onChange={async (e) => {
@@ -291,7 +292,7 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
             </select>
           </div>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-3">
           <Button
             type="button"
             variant={pickSegment ? 'default' : 'outline'}
@@ -322,7 +323,7 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
                 <Label htmlFor="wp-from">Arrêt de départ</Label>
                 <select
                   id="wp-from"
-                  className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                  className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
                   value={fromStopId}
                   onChange={(e) => {
                     setFromStopId(e.target.value);
@@ -332,7 +333,7 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
                 >
                   <option value="">Choisir…</option>
                   {stops.map((stop) => (
-                    <option key={stop.stopId} value={stop.stopId}>
+                    <option key={`${stop.stopId}:${stop.sequence}`} value={stop.stopId}>
                       {stop.name}
                     </option>
                   ))}
@@ -342,7 +343,7 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
                 <Label htmlFor="wp-to">Arrêt d’arrivée</Label>
                 <select
                   id="wp-to"
-                  className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                  className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
                   value={toStopId}
                   disabled={!fromStopId}
                   onChange={(e) => {
@@ -363,7 +364,7 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
                 >
                   <option value="">Choisir…</option>
                   {arrivalChoices.map((stop) => (
-                    <option key={stop.stopId} value={stop.stopId}>
+                    <option key={`${stop.stopId}:${stop.sequence}`} value={stop.stopId}>
                       {stop.name}
                     </option>
                   ))}
@@ -481,20 +482,22 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
             Annuler
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">Version feed : {data.feedVersion}</p>
-        <div className="flex flex-col gap-2 rounded-md border border-border p-2">
+        <p className="px-0.5 text-xs text-muted-foreground">Version feed : {data.feedVersion}</p>
+        <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-3">
           <p className="text-sm font-medium">Arrêts du parcours</p>
           <div className="flex flex-col gap-1">
-            <Label htmlFor="insert-after">Insérer après</Label>
+            <Label htmlFor="insert-after" className="text-xs text-muted-foreground">
+              Insérer après
+            </Label>
             <select
               id="insert-after"
-              className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+              className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
               value={insertAfterId}
               onChange={(e) => setInsertAfterId(e.target.value)}
             >
               <option value="">En fin de parcours</option>
               {stops.map((stop) => (
-                <option key={stop.stopId} value={stop.stopId}>
+                <option key={`${stop.stopId}:${stop.sequence}`} value={stop.stopId}>
                   {stop.name}
                 </option>
               ))}
@@ -624,7 +627,7 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
         ) : null}
         <ol className="flex flex-col gap-3">
           {stops.map((stop) => (
-            <li key={stop.stopId} className="rounded-md border border-border p-2">
+            <li key={`${stop.stopId}:${stop.sequence}`} className="rounded-md border border-border p-2">
               <p className="text-sm font-medium">{stop.name}</p>
               {stopTimeLabel(stop.stopId, stopTimes) ? (
                 <p className="text-xs text-muted-foreground">{stopTimeLabel(stop.stopId, stopTimes)}</p>

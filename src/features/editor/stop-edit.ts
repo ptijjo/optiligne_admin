@@ -1,4 +1,4 @@
-import type { EditorStop } from '@/features/editor/schemas';
+import type { EditorStop, LineString } from '@/features/editor/schemas';
 
 export function renumberStops(stops: EditorStop[]): EditorStop[] {
   return stops.map((stop, i) => ({ ...stop, sequence: i + 1 }));
@@ -41,4 +41,15 @@ export function newStopId(): string {
       ? crypto.randomUUID().replace(/-/g, '')
       : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
   return `ol-${raw.slice(0, 16)}`;
+}
+
+/** LineString provisoire reliant les arrêts dans l’ordre (avant collage OSRM en éditeur). */
+export function shapeFromStops(stops: EditorStop[]): LineString | null {
+  if (stops.length < 2) {
+    return null;
+  }
+  return {
+    type: 'LineString',
+    coordinates: stops.map((s) => [s.lng, s.lat]),
+  };
 }

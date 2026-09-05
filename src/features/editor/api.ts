@@ -1,9 +1,13 @@
 import { api } from '@/api/client';
 import {
+  createRouteBodySchema,
+  createRouteResponseSchema,
   draftSchema,
   recalcResponseSchema,
   saveResponseSchema,
   stopHitSchema,
+  type CreateRouteBody,
+  type CreateRouteResponse,
   type Draft,
   type EditorStop,
   type LineString,
@@ -31,6 +35,11 @@ export function searchStops(query: string, limit = 20): Promise<StopHit[]> {
   return api.get('/admin/stops', z.array(stopHitSchema), {
     query: { q: query, limit: String(limit) },
   });
+}
+
+export function createRoute(input: CreateRouteBody): Promise<CreateRouteResponse> {
+  const body = createRouteBodySchema.parse(input);
+  return api.post('/admin/routes', body, createRouteResponseSchema);
 }
 
 export function patchStop(

@@ -253,7 +253,7 @@ export function MapCanvas({
         const selected = selectedStopIds.includes(stop.stopId);
         return (
           <Marker
-            key={stop.stopId}
+            key={`${stop.stopId}:${stop.sequence}`}
             position={[stop.lat, stop.lng]}
             draggable={!mapBusy}
             icon={selected ? stopSelectedIcon : stopIcon}

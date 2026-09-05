@@ -2,6 +2,7 @@
 
 import { RouteList } from '@/features/catalog/route-list';
 import { useAuth } from '@/auth/provider';
+import Link from 'next/link';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -9,20 +10,16 @@ export default function HomePage() {
     return null;
   }
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 overflow-auto px-3 py-4 sm:p-6">
-      <h1 className="mb-2 text-xl font-bold sm:text-2xl">Tableau de bord</h1>
-      <p className="mb-1 text-sm text-muted-foreground sm:text-base">
-        Lignes affectées à <span className="font-medium text-foreground">{user.operatorCode}</span>
-        {' · dépôt '}
-        <span className="font-medium text-foreground">{user.depotCode}</span>
-      </p>
-      <p className="mb-4 text-sm text-muted-foreground sm:mb-6 sm:text-base">
-        Filtrez par type, puis ouvrez une ligne pour ajuster les arrêts et le tracé.
-        <span className="hidden sm:inline">
-          {' '}
-          Les téléphones du dépôt utiliseront le circuit enregistré.
-        </span>
-      </p>
+    <main className="mx-auto w-full max-w-5xl flex-1 overflow-auto px-3 py-5 sm:px-6 sm:py-6">
+      <div className="mb-4 flex items-end justify-between gap-3 sm:mb-5">
+        <h1 className="text-lg font-semibold tracking-tight sm:text-xl">Lignes</h1>
+        <Link
+          href="/routes/new"
+          className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Nouvelle ligne
+        </Link>
+      </div>
       <RouteList operatorCode={user.operatorCode} depotCode={user.depotCode} />
     </main>
   );

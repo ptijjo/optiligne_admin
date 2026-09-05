@@ -57,7 +57,7 @@ describe('RouteList — dashboard périmètre', () => {
     renderList('OP-A', 'DEP-1');
     expect(await screen.findByText('57R004')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Scolaires/ }));
+    await user.click(screen.getByRole('tab', { name: /Scolaires/ }));
     expect(screen.getByText('57ECR00')).toBeInTheDocument();
     expect(screen.queryByText('57R004')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /57ECR00/ })).toHaveAttribute(

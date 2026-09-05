@@ -1,12 +1,10 @@
 'use client';
 
 import { useAuth } from '@/auth/provider';
-import { CircuitWorkbench } from '@/components/circuit-workbench';
+import { CreateRouteWizard } from '@/features/editor/create-route-wizard';
 import Link from 'next/link';
-import { use } from 'react';
 
-export default function RouteEditorPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function NewRoutePage() {
   const { user } = useAuth();
   if (!user) {
     return null;
@@ -20,9 +18,9 @@ export default function RouteEditorPage({ params }: { params: Promise<{ id: stri
         >
           ← Lignes
         </Link>
-        <h1 className="text-sm font-semibold tracking-tight sm:text-base">Corriger le circuit</h1>
+        <h1 className="text-sm font-semibold tracking-tight sm:text-base">Nouvelle ligne</h1>
       </div>
-      <CircuitWorkbench routeId={id} operatorCode={user.operatorCode} depotCode={user.depotCode} />
+      <CreateRouteWizard operatorCode={user.operatorCode} depotCode={user.depotCode} />
     </main>
   );
 }

@@ -5,6 +5,7 @@ import './globals.css';
 
 const inter = Inter({
   subsets: ['latin'],
+  variable: '--font-sans',
 });
 
 export const metadata: Metadata = {
@@ -24,8 +25,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="fr" className="h-full antialiased">
-      <body className={`${inter.className} flex min-h-full flex-col bg-background text-foreground`}>
+    <html lang="fr" className={`${inter.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
         <Providers>{children}</Providers>
       </body>
     </html>

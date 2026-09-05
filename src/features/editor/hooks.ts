@@ -1,7 +1,16 @@
 'use client';
 
-import { getDraft, matchShape, patchRouteType, patchStop, recalculate, saveDraft, searchStops } from '@/features/editor/api';
-import type { EditorStop, LineString, Waypoint } from '@/features/editor/schemas';
+import {
+  createRoute,
+  getDraft,
+  matchShape,
+  patchRouteType,
+  patchStop,
+  recalculate,
+  saveDraft,
+  searchStops,
+} from '@/features/editor/api';
+import type { CreateRouteBody, EditorStop, LineString, Waypoint } from '@/features/editor/schemas';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export function useDraft(routeId: string, operatorCode: string, depotCode: string, tripId?: string) {
@@ -18,6 +27,17 @@ export function useStopSearch(query: string) {
     queryKey: ['admin', 'stops', q],
     queryFn: () => searchStops(q),
     enabled: q.length >= 2,
+  });
+}
+
+export function useCreateRoute(operatorCode: string, depotCode: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Omit<CreateRouteBody, 'operatorCode' | 'depotCode'>) =>
+      createRoute({ ...input, operatorCode, depotCode }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['catalog', 'routes', operatorCode, depotCode] });
+    },
   });
 }
 

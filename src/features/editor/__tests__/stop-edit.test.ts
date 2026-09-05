@@ -1,4 +1,4 @@
-import { insertStopAfter, newStopId, removeStop, renumberStops } from '@/features/editor/stop-edit';
+import { insertStopAfter, newStopId, removeStop, renumberStops, shapeFromStops } from '@/features/editor/stop-edit';
 import type { EditorStop } from '@/features/editor/schemas';
 import { describe, expect, it } from 'vitest';
 
@@ -42,6 +42,17 @@ describe('stop-edit', () => {
 
   it('génère un id ol-', () => {
     expect(newStopId().startsWith('ol-')).toBe(true);
+  });
+
+  it('shapeFromStops relie lng/lat dans l’ordre', () => {
+    expect(shapeFromStops(base.slice(0, 2))).toEqual({
+      type: 'LineString',
+      coordinates: [
+        [6.9, 49.1],
+        [6.91, 49.11],
+      ],
+    });
+    expect(shapeFromStops(base.slice(0, 1))).toBeNull();
   });
 
   it('renumberStops', () => {

@@ -11,6 +11,7 @@ import {
   ROUTE_KIND_OPTIONS,
   type RouteKind,
 } from '@/features/catalog/kind';
+import { normalizeSector, routeEditorHref } from '@/features/catalog/sector';
 import { useCreateRoute, useStopSearch } from '@/features/editor/hooks';
 import type { CreateCalendar, CreateTripTimes, EditorStop, LineString, StopHit } from '@/features/editor/schemas';
 import {
@@ -269,7 +270,7 @@ export function CreateRouteWizard({ operatorCode, depotCode }: Props) {
       });
       // 2. Message FR + ouvrir l’éditeur.
       toast.success(out.message);
-      router.push(`/routes/${encodeURIComponent(out.routeId)}`);
+      router.push(routeEditorHref(out.routeId, normalizeSector(depotCode)));
     } catch (err) {
       setFormError(isApiError(err) ? err.message : 'Création impossible.');
     }

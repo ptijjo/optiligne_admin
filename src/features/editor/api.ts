@@ -17,7 +17,7 @@ import {
 import { z } from 'zod';
 
 function scope(operatorCode: string, depotCode: string) {
-  return { operator_code: operatorCode, depot_code: depotCode };
+  return { operator_code: operatorCode, depot_code: depotCode, sector: depotCode };
 }
 
 export function getDraft(

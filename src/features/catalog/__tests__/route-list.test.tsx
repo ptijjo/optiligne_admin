@@ -62,8 +62,28 @@ describe('RouteList — dashboard périmètre', () => {
     expect(screen.queryByText('57R004')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /57ECR00/ })).toHaveAttribute(
       'href',
-      '/routes/r-sco',
+      '/routes/r-sco?sector=rge',
     );
+  });
+
+  it('filtre le catalogue par réseau RGE / CASAS / CASC / Forbus', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(`${API}/catalog/routes`, ({ request }) => {
+        const url = new URL(request.url);
+        const sector = url.searchParams.get('sector') ?? url.searchParams.get('depot_code');
+        if (sector === 'casas') {
+          return jsonOk([{ id: 'L1', shortName: 'L1', longName: 'CASAS urbain', routeType: 3 }]);
+        }
+        return jsonOk(routesA);
+      }),
+    );
+    renderList('OP-A', 'fluo57');
+    expect(await screen.findByText('57R004')).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'CASAS' }));
+    expect(await screen.findByText('L1')).toBeInTheDocument();
+    expect(screen.queryByText('57R004')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /L1/ })).toHaveAttribute('href', '/routes/L1?sector=casas');
   });
 
   it('ne fetch pas sans dépôt', () => {

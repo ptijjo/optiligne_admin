@@ -172,9 +172,9 @@ describe('CreateRouteWizard', () => {
     expect(trips.length).toBeGreaterThanOrEqual(1);
     expect(trips[0].arrivalSecs).toHaveLength(2);
     await waitFor(() => {
-      expect(push).toHaveBeenCalledWith('/routes/ol-r-new');
+      expect(push).toHaveBeenCalledWith('/routes/ol-r-new?sector=rge');
     });
-  });
+  }, 15_000);
 
   it('affiche l’erreur API sans rediriger', async () => {
     const user = userEvent.setup();

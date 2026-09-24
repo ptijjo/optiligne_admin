@@ -10,7 +10,7 @@ import {
 
 export function listRoutes(operatorCode: string, depotCode: string): Promise<Route[]> {
   return api.get('/catalog/routes', routesSchema, {
-    query: { operator_code: operatorCode, depot_code: depotCode },
+    query: { operator_code: operatorCode, depot_code: depotCode, sector: depotCode },
   });
 }
 
@@ -21,7 +21,7 @@ export function listTrips(
   date: string,
 ): Promise<CatalogTrip[]> {
   return api.get(`/catalog/routes/${encodeURIComponent(routeId)}/trips`, catalogTripsSchema, {
-    query: { operator_code: operatorCode, depot_code: depotCode, date },
+    query: { operator_code: operatorCode, depot_code: depotCode, sector: depotCode, date },
   });
 }
 
@@ -31,6 +31,6 @@ export function listTripStops(
   depotCode: string,
 ): Promise<CatalogStop[]> {
   return api.get(`/catalog/trips/${encodeURIComponent(tripId)}/stops`, catalogStopsSchema, {
-    query: { operator_code: operatorCode, depot_code: depotCode },
+    query: { operator_code: operatorCode, depot_code: depotCode, sector: depotCode },
   });
 }

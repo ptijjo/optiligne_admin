@@ -23,8 +23,8 @@ describe('TripSchedule', () => {
         onSelect={onSelect}
       />,
     );
-    expect(screen.getByText('07:15')).toBeInTheDocument();
-    expect(screen.getByText('16:00')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /07:15/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /16:00/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /DÉPÔT/ })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /DÉPÔT/ }));
     expect(onSelect).toHaveBeenCalledWith('T-SOIR');

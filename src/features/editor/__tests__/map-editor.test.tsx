@@ -2,9 +2,18 @@ import { MapEditor } from '@/features/editor/map-editor';
 import { API, http, jsonOk } from '@/test/msw/http';
 import { server } from '@/test/msw/server';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
+const toastSuccess = vi.fn();
+vi.mock('sonner', () => ({
+  toast: {
+    success: (...args: unknown[]) => toastSuccess(...args),
+    error: vi.fn(),
+    warning: vi.fn(),
+  },
+}));
 
 vi.mock('next/dynamic', () => ({
   default: () =>
@@ -70,6 +79,7 @@ beforeAll(() => {
 });
 afterEach(() => {
   server.resetHandlers();
+  toastSuccess.mockClear();
 });
 afterAll(() => {
   server.close();
@@ -106,23 +116,55 @@ describe('MapEditor — brouillon local', () => {
     expect(select).toHaveValue('scolaire');
   });
 
-  it('affiche l’horaire d’arrêt de la course (lecture seule)', async () => {
-    server.use(http.get(`${API}/admin/routes/R1`, () => jsonOk(draftR1)));
+  it('affiche et enregistre les horaires de la course', async () => {
+    const user = userEvent.setup();
+    let posted: { stops?: { stopId: string; arrivalSec: number }[] } | undefined;
+    server.use(
+      http.get(`${API}/admin/routes/R1`, () =>
+        jsonOk({
+          ...draftPair,
+          stops: [
+            { ...draftPair.stops[0], arrivalSec: 26100, departureSec: 26100 },
+            { ...draftPair.stops[1], arrivalSec: 27000, departureSec: 27000 },
+          ],
+        }),
+      ),
+      http.get(`${API}/catalog/trips/T1/stops`, () =>
+        jsonOk([
+          { stopId: 'ST1', name: 'Mairie', sequence: 1, arrivalSec: 26100, departureSec: 26100 },
+          { stopId: 'ST2', name: 'École', sequence: 2, arrivalSec: 27000, departureSec: 27000 },
+        ]),
+      ),
+      http.patch(`${API}/admin/routes/R1/trips/T1/stop-times`, async ({ request }) => {
+        posted = (await request.json()) as { stops?: { stopId: string; arrivalSec: number }[] };
+        return jsonOk({
+          feedVersion: 'v1',
+          message: 'Horaires enregistrés. Les téléphones du dépôt les utiliseront au prochain chargement du catalogue.',
+        });
+      }),
+    );
     render(
       <QueryClientProvider
-        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+        client={new QueryClient({
+          defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        })}
       >
-        <MapEditor
-          routeId="R1"
-          operatorCode="OP-A"
-          depotCode="DEP-1"
-          stopTimes={[
-            { stopId: 'ST1', name: 'Mairie', sequence: 1, arrivalSec: 26100, departureSec: 26100 },
-          ]}
-        />
+        <MapEditor routeId="R1" operatorCode="OP-A" depotCode="DEP-1" tripId="T1" />
       </QueryClientProvider>,
     );
-    expect(await screen.findByText('07:15')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Horaire Mairie')).toHaveValue('07:15');
+    const ecole = screen.getByLabelText('Horaire École');
+    fireEvent.change(ecole, { target: { value: '07:40' } });
+    await user.click(screen.getByRole('button', { name: 'Enregistrer les horaires' }));
+    await waitFor(() => {
+      expect(posted?.stops).toEqual([
+        { stopId: 'ST1', sequence: 1, arrivalSec: 26100, departureSec: 26100 },
+        { stopId: 'ST2', sequence: 2, arrivalSec: 27600, departureSec: 27600 },
+      ]);
+    });
+    expect(toastSuccess).toHaveBeenCalledWith(
+      'Horaires enregistrés. Les téléphones du dépôt les utiliseront au prochain chargement du catalogue.',
+    );
   });
 
   it('Annuler restaure les coordonnées du serveur après un déplacement local', async () => {
@@ -171,9 +213,9 @@ describe('MapEditor — brouillon local', () => {
     const user = userEvent.setup();
     server.use(http.get(`${API}/admin/routes/R1`, () => jsonOk(draftR1)));
     renderEditor('R1');
-    const toggle = await screen.findByRole('button', { name: 'Ajuster le tracé à la main' });
+    const toggle = await screen.findByRole('button', { name: 'Tracer' });
     await user.click(toggle);
-    expect(screen.getByText(/Attrapez la ligne bleue/)).toBeInTheDocument();
+    expect(screen.getByText(/Glissez le tracé le long des rues/)).toBeInTheDocument();
   });
 
   it('colle le tracé actuel sur les rues (map matching), sans recalculer A→B', async () => {
@@ -209,6 +251,7 @@ describe('MapEditor — brouillon local', () => {
     );
     renderEditor('R1');
     await screen.findByLabelText('Latitude');
+    await user.click(screen.getByRole('button', { name: 'Tracer' }));
     await user.click(screen.getByRole('button', { name: 'Coller aux rues' }));
     await waitFor(() => {
       expect(posted?.shape?.coordinates).toEqual(drawn.shape.coordinates);
@@ -231,7 +274,7 @@ describe('MapEditor — brouillon local', () => {
     );
     renderEditor('R1');
     expect(await screen.findAllByLabelText('Latitude')).toHaveLength(2);
-    await user.click(screen.getByRole('button', { name: 'Imposer un détour entre 2 arrêts' }));
+    await user.click(screen.getByRole('button', { name: 'Détour' }));
     await user.selectOptions(screen.getByLabelText('Arrêt de départ'), 'ST1');
     await user.selectOptions(screen.getByLabelText('Arrêt d’arrivée'), 'ST2');
     expect(screen.getByText(/Cliquez sur la rue entre Mairie et École/)).toBeInTheDocument();
@@ -257,9 +300,17 @@ describe('MapEditor — brouillon local', () => {
     );
     renderEditor('R1');
     await screen.findAllByLabelText('Latitude');
+    await user.click(screen.getByRole('button', { name: 'Détour' }));
     await user.click(screen.getByRole('button', { name: 'Recalculer avec détours' }));
     await new Promise((r) => setTimeout(r, 50));
     expect(called).toBe(false);
+  });
+
+  it('expose la barre d’outils d’édition au clavier', async () => {
+    server.use(http.get(`${API}/admin/routes/R1`, () => jsonOk(draftR1)));
+    renderEditor('R1');
+    expect(await screen.findByRole('toolbar', { name: 'Modes d’édition' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Déplacer' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('supprime un arrêt du parcours localement', async () => {
@@ -289,6 +340,7 @@ describe('MapEditor — brouillon local', () => {
     );
     renderEditor('R1');
     await screen.findAllByLabelText('Latitude');
+    await user.click(screen.getByRole('button', { name: 'Ajouter' }));
     await user.type(screen.getByLabelText('Rechercher un arrêt GTFS'), 'coll');
     await user.click(await screen.findByRole('button', { name: 'Nouveau Collège' }));
     expect(screen.getAllByLabelText('Latitude')).toHaveLength(3);

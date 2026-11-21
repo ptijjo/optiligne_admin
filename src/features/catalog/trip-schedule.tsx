@@ -31,7 +31,7 @@ export function TripSchedule({
 }: Props) {
   return (
     <section
-      className="flex shrink-0 flex-col gap-2 rounded-md border border-border bg-card p-2 sm:p-3"
+      className="flex shrink-0 flex-col gap-2 rounded-xl border border-border/80 bg-card p-2.5 shadow-sm sm:p-3"
       aria-label="Horaires des courses"
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:gap-3">
@@ -44,17 +44,17 @@ export function TripSchedule({
             type="date"
             value={date}
             onChange={(e) => onDateChange(e.target.value)}
-            className="h-8 w-full bg-background sm:max-w-44"
+            className="h-9 w-full bg-background sm:max-w-44"
           />
         </div>
-        <p className="text-xs text-muted-foreground sm:max-w-xl sm:pb-1">
-          Lecture seule — le tracé s’applique à toute la ligne.
+        <p className="text-xs text-muted-foreground sm:max-w-xl sm:pb-1.5">
+          Choisissez la course : les horaires d’arrêts s’éditent dans le panneau à droite.
         </p>
       </div>
       {isPending ? (
         <div className="flex gap-2" aria-busy="true" aria-label="Chargement des horaires">
-          <Skeleton className="h-8 w-32" />
-          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-8 w-32 rounded-full" />
+          <Skeleton className="h-8 w-32 rounded-full" />
         </div>
       ) : null}
       {error ? (
@@ -78,14 +78,15 @@ export function TripSchedule({
                   type="button"
                   size="sm"
                   variant={active ? 'default' : 'outline'}
-                  className={cn('h-8 gap-1.5 px-2.5 text-xs', !active && 'bg-background')}
+                  className={cn(
+                    'h-8 rounded-full px-3 text-xs transition-[transform,background-color] duration-150 ease-[var(--ease-out)]',
+                    active && 'shadow-sm',
+                  )}
                   aria-pressed={active}
                   onClick={() => onSelect(trip.id)}
                 >
-                  <span className="font-mono tabular-nums">{formatDeparture(trip.departureSec)}</span>
-                  <span className="max-w-36 truncate font-normal">{trip.headsign || 'Sans destination'}</span>
+                  {label}
                 </Button>
-                <span className="sr-only">{label}</span>
               </li>
             );
           })}

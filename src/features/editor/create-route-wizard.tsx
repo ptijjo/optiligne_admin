@@ -276,29 +276,42 @@ export function CreateRouteWizard({ operatorCode, depotCode }: Props) {
     }
   };
 
+  const steps: { id: Step; label: string }[] = [
+    { id: 'meta', label: 'Nom' },
+    { id: 'stops', label: 'Arrêts' },
+    { id: 'days', label: 'Jours' },
+    { id: 'times', label: 'Horaires' },
+    { id: 'shape', label: 'Tracé' },
+  ];
+  const stepIndex = steps.findIndex((s) => s.id === step);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:gap-4">
       <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto lg:max-h-full lg:w-80 xl:w-96">
-        <ol className="flex flex-wrap gap-1 text-xs text-muted-foreground" aria-label="Étapes">
-          {(
-            [
-              ['meta', '1. Nom'],
-              ['stops', '2. Arrêts'],
-              ['days', '3. Jours'],
-              ['times', '4. Horaires'],
-              ['shape', '5. Tracé'],
-            ] as const
-          ).map(([id, label]) => (
-            <li
-              key={id}
-              className={cn(
-                'rounded-md px-2 py-1',
-                step === id ? 'bg-muted font-medium text-foreground' : '',
-              )}
-            >
-              {label}
-            </li>
-          ))}
+        <ol
+          className="flex flex-wrap gap-1.5 rounded-xl border border-border/80 bg-card p-2 shadow-sm"
+          aria-label="Étapes"
+        >
+          {steps.map((item, index) => {
+            const active = step === item.id;
+            const done = index < stepIndex;
+            return (
+              <li key={item.id}>
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
+                    active && 'bg-primary text-primary-foreground shadow-sm',
+                    done && !active && 'bg-accent text-accent-foreground',
+                    !active && !done && 'bg-muted/70 text-muted-foreground',
+                  )}
+                  aria-current={active ? 'step' : undefined}
+                >
+                  <span className="tabular-nums opacity-80">{index + 1}.</span>
+                  {item.label}
+                </span>
+              </li>
+            );
+          })}
         </ol>
 
         {formError ? (
@@ -351,8 +364,13 @@ export function CreateRouteWizard({ operatorCode, depotCode }: Props) {
         ) : null}
 
         {step === 'stops' ? (
-          <div className="flex flex-col gap-3 rounded-md border border-border bg-card p-3">
-            <p className="text-sm font-medium">Arrêts du parcours ({stops.length})</p>
+          <div className="flex flex-col gap-3 rounded-xl border border-border/80 bg-card p-3 shadow-sm">
+            <div>
+              <p className="text-sm font-medium">Arrêts du parcours ({stops.length})</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Ajoutez au moins deux arrêts (carte ou recherche GTFS), dans l’ordre de passage.
+              </p>
+            </div>
             <ul className="max-h-40 divide-y divide-border overflow-y-auto text-sm">
               {stops.map((stop) => (
                 <li
@@ -507,11 +525,13 @@ export function CreateRouteWizard({ operatorCode, depotCode }: Props) {
         ) : null}
 
         {step === 'times' ? (
-          <div className="flex flex-col gap-3 rounded-md border border-border bg-card p-3">
-            <p className="text-sm font-medium">Horaires des courses</p>
-            <p className="text-xs text-muted-foreground">
-              Ces courses circulent les jours choisis à l’étape précédente.
-            </p>
+          <div className="flex flex-col gap-3 rounded-xl border border-border/80 bg-card p-3 shadow-sm">
+            <div>
+              <p className="text-sm font-medium">Horaires des courses</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Indiquez l’heure à chaque arrêt. Vous pouvez ajouter plusieurs courses (matin / soir).
+              </p>
+            </div>
             {trips.map((tr, tripIdx) => (
               <div key={tripIdx} className="flex flex-col gap-2 rounded-md border border-border p-2">
                 <div className="flex items-center justify-between gap-2">

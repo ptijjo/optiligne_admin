@@ -124,6 +124,16 @@ describe('createRoute — contrat API', () => {
 });
 
 describe('CreateRouteWizard', () => {
+  it('affiche le stepper Nom / Arrêts / Jours / Horaires / Tracé', async () => {
+    renderWizard();
+    const nav = screen.getByRole('list', { name: 'Étapes' });
+    expect(nav).toHaveTextContent('Nom');
+    expect(nav).toHaveTextContent('Arrêts');
+    expect(nav).toHaveTextContent('Jours');
+    expect(nav).toHaveTextContent('Horaires');
+    expect(nav).toHaveTextContent('Tracé');
+  });
+
   it('passe par jours puis horaires, crée et redirige', async () => {
     const user = userEvent.setup();
     let posted: Record<string, unknown> | undefined;

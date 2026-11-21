@@ -28,10 +28,10 @@ export function LoginForm() {
   });
 
   return (
-    <div className="w-full max-w-sm rounded-md border border-border bg-card p-6">
+    <div className="relative z-10 w-full max-w-sm rounded-xl border border-border/80 bg-card p-7 shadow-[0_18px_40px_rgb(18_32_51/0.08)]">
       <div className="mb-6">
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Optiligne</p>
-        <h2 className="mt-1 text-lg font-semibold tracking-tight">Connexion</h2>
+        <p className="text-xl font-semibold tracking-tight text-primary">Optiligne</p>
+        <h2 className="mt-2 text-lg font-semibold tracking-tight text-foreground">Connexion</h2>
         <p className="mt-1 text-sm text-muted-foreground">Espace exploitant — circuits scolaires.</p>
       </div>
       <form
@@ -47,14 +47,20 @@ export function LoginForm() {
       >
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="email">E-mail</Label>
-          <Input id="email" type="email" autoComplete="username" {...form.register('email')} />
+          <Input id="email" type="email" autoComplete="username" className="h-10 bg-background" {...form.register('email')} />
           {form.formState.errors.email ? (
             <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
           ) : null}
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="password">Mot de passe</Label>
-          <Input id="password" type="password" autoComplete="current-password" {...form.register('password')} />
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            className="h-10 bg-background"
+            {...form.register('password')}
+          />
           {form.formState.errors.password ? (
             <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
           ) : null}
@@ -64,7 +70,7 @@ export function LoginForm() {
             {formError}
           </p>
         ) : null}
-        <Button type="submit" className="mt-1 w-full" disabled={form.formState.isSubmitting}>
+        <Button type="submit" size="lg" className="mt-1 h-10 w-full" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? 'Connexion…' : 'Se connecter'}
         </Button>
       </form>

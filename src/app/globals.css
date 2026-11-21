@@ -39,6 +39,11 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-edit: var(--edit);
+  --color-edit-foreground: var(--edit-foreground);
+  --color-route-scolaire: var(--route-scolaire);
+  --color-route-reguliere: var(--route-reguliere);
+  --color-route-associee: var(--route-associee);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -46,78 +51,91 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 :root {
-  /* Console d’exploitation — slate froid, accent marque discret */
-  --background: #f4f5f7;
-  --foreground: #18181b;
+  /* Console cartographique — papier froid, tracé teal, édition cuivre */
+  --background: #eef1f4;
+  --foreground: #122033;
   --card: #ffffff;
-  --card-foreground: #18181b;
+  --card-foreground: #122033;
   --popover: #ffffff;
-  --popover-foreground: #18181b;
-  --primary: #0056d6;
-  --primary-foreground: #ffffff;
-  --brand: #0056d6;
-  --secondary: #e4e4e7;
-  --secondary-foreground: #27272a;
-  --muted: #ececef;
-  --muted-foreground: #71717a;
-  --accent: #ececef;
-  --accent-foreground: #18181b;
-  --destructive: #dc2626;
-  --border: #d4d4d8;
-  --input: #d4d4d8;
-  --ring: #0056d6;
-  --chart-1: #0056d6;
-  --chart-2: #71717a;
-  --chart-3: #a1a1aa;
-  --chart-4: #3f3f46;
-  --chart-5: #27272a;
-  --radius: 0.375rem;
+  --popover-foreground: #122033;
+  --primary: #1a6b5a;
+  --primary-foreground: #f4fbf8;
+  --brand: #1a6b5a;
+  --edit: #c45c26;
+  --edit-foreground: #fff7f0;
+  --secondary: #e2e7ec;
+  --secondary-foreground: #1c2a3a;
+  --muted: #e5e9ee;
+  --muted-foreground: #5b6b7c;
+  --accent: #dce8e4;
+  --accent-foreground: #122033;
+  --destructive: #c62828;
+  --border: #cfd6de;
+  --input: #cfd6de;
+  --ring: #1a6b5a;
+  --route-scolaire: #1a6b5a;
+  --route-reguliere: #3d5a80;
+  --route-associee: #6b7c93;
+  --chart-1: #1a6b5a;
+  --chart-2: #c45c26;
+  --chart-3: #3d5a80;
+  --chart-4: #6b7c93;
+  --chart-5: #122033;
+  --radius: 0.5rem;
   --sidebar: #ffffff;
-  --sidebar-foreground: #18181b;
-  --sidebar-primary: #0056d6;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f4f5f7;
-  --sidebar-accent-foreground: #18181b;
-  --sidebar-border: #d4d4d8;
-  --sidebar-ring: #0056d6;
+  --sidebar-foreground: #122033;
+  --sidebar-primary: #1a6b5a;
+  --sidebar-primary-foreground: #f4fbf8;
+  --sidebar-accent: #eef1f4;
+  --sidebar-accent-foreground: #122033;
+  --sidebar-border: #cfd6de;
+  --sidebar-ring: #1a6b5a;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 .dark {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --card: #18181b;
-  --card-foreground: #fafafa;
-  --popover: #18181b;
-  --popover-foreground: #fafafa;
-  --primary: #3b82f6;
-  --primary-foreground: #ffffff;
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
-  --destructive: #f87171;
-  --border: #3f3f46;
-  --input: #3f3f46;
-  --ring: #3b82f6;
-  --chart-1: #3b82f6;
-  --chart-2: #a1a1aa;
-  --chart-3: #71717a;
-  --chart-4: #d4d4d8;
-  --chart-5: #e4e4e7;
-  --sidebar: #18181b;
-  --sidebar-foreground: #fafafa;
-  --sidebar-primary: #3b82f6;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #27272a;
-  --sidebar-accent-foreground: #fafafa;
-  --sidebar-border: #3f3f46;
-  --sidebar-ring: #3b82f6;
+  --background: #0c1219;
+  --foreground: #eef1f4;
+  --card: #15202b;
+  --card-foreground: #eef1f4;
+  --popover: #15202b;
+  --popover-foreground: #eef1f4;
+  --primary: #3d9b84;
+  --primary-foreground: #041510;
+  --brand: #3d9b84;
+  --edit: #e07a45;
+  --edit-foreground: #1a0c05;
+  --secondary: #1e2a38;
+  --secondary-foreground: #eef1f4;
+  --muted: #1e2a38;
+  --muted-foreground: #9aabbc;
+  --accent: #1e2a38;
+  --accent-foreground: #eef1f4;
+  --destructive: #f07178;
+  --border: #2a3a4c;
+  --input: #2a3a4c;
+  --ring: #3d9b84;
+  --route-scolaire: #3d9b84;
+  --route-reguliere: #7aa2c9;
+  --route-associee: #9aabbc;
+  --chart-1: #3d9b84;
+  --chart-2: #e07a45;
+  --chart-3: #7aa2c9;
+  --chart-4: #9aabbc;
+  --chart-5: #eef1f4;
+  --sidebar: #15202b;
+  --sidebar-foreground: #eef1f4;
+  --sidebar-primary: #3d9b84;
+  --sidebar-primary-foreground: #041510;
+  --sidebar-accent: #1e2a38;
+  --sidebar-accent-foreground: #eef1f4;
+  --sidebar-border: #2a3a4c;
+  --sidebar-ring: #3d9b84;
 }
 
 @layer base {
@@ -130,6 +148,9 @@
   html {
     @apply font-sans;
     color-scheme: light;
+  }
+  button:not(:disabled):active {
+    transform: scale(0.98);
   }
 }
 
@@ -146,16 +167,16 @@
   height: 18px;
   border-radius: 999px;
   background: #fff;
-  border: 3px solid var(--brand, #0056d6);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+  border: 3px solid var(--brand, #1a6b5a);
+  box-shadow: 0 1px 3px rgb(18 32 51 / 22%);
 }
 
 .ol-stop-selected span {
   width: 22px;
   height: 22px;
-  border-color: #ea580c;
-  background: #fff7ed;
-  box-shadow: 0 0 0 2px rgb(234 88 12 / 35%);
+  border-color: var(--edit, #c45c26);
+  background: #fff7f0;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--edit, #c45c26) 35%, transparent);
 }
 
 .ol-waypoint-icon span {
@@ -163,9 +184,9 @@
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: #ea580c;
+  background: var(--edit, #c45c26);
   border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+  box-shadow: 0 1px 3px rgb(18 32 51 / 22%);
 }
 
 .ol-vertex-icon span {
@@ -173,9 +194,9 @@
   width: 12px;
   height: 12px;
   border-radius: 2px;
-  background: var(--brand, #0056d6);
+  background: var(--brand, #1a6b5a);
   border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+  box-shadow: 0 1px 3px rgb(18 32 51 / 22%);
 }
 
 .leaflet-container {
@@ -183,4 +204,23 @@
   width: 100%;
   font-family: inherit;
   z-index: 0;
+  background: #dce3ea;
+}
+
+.leaflet-container.ol-map-busy {
+  cursor: crosshair;
+}
+
+.leaflet-tooltip.ol-map-tooltip {
+  border: none;
+  border-radius: 0.375rem;
+  background: #122033;
+  color: #eef1f4;
+  box-shadow: 0 4px 14px rgb(18 32 51 / 25%);
+  padding: 0.35rem 0.55rem;
+  font-size: 0.75rem;
+}
+
+.leaflet-tooltip.ol-map-tooltip::before {
+  border-top-color: #122033;
 }

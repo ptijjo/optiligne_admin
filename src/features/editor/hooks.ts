@@ -6,11 +6,18 @@ import {
   matchShape,
   patchRouteType,
   patchStop,
+  patchTripStopTimes,
   recalculate,
   saveDraft,
   searchStops,
 } from '@/features/editor/api';
-import type { CreateRouteBody, EditorStop, LineString, Waypoint } from '@/features/editor/schemas';
+import type {
+  CreateRouteBody,
+  EditorStop,
+  LineString,
+  TripStopTimePatch,
+  Waypoint,
+} from '@/features/editor/schemas';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export function useDraft(routeId: string, operatorCode: string, depotCode: string, tripId?: string) {
@@ -75,5 +82,15 @@ export function useEditorMutations(routeId: string, operatorCode: string, depotC
     onSuccess: invalidate,
   });
 
-  return { patch, patchType, recalc, match, save };
+  const patchTimes = useMutation({
+    mutationFn: (input: { tripId: string; stops: TripStopTimePatch[] }) =>
+      patchTripStopTimes(routeId, input.tripId, operatorCode, depotCode, input.stops),
+    onSuccess: (_data, input) => {
+      invalidate();
+      client.invalidateQueries({ queryKey: ['catalog', 'trip-stops', input.tripId, operatorCode, depotCode] });
+      client.invalidateQueries({ queryKey: ['catalog', 'trips', routeId, operatorCode, depotCode] });
+    },
+  });
+
+  return { patch, patchType, recalc, match, save, patchTimes };
 }

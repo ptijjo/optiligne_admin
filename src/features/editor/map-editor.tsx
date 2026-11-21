@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTripStops } from '@/features/catalog/hooks';
 import type { CatalogStop } from '@/features/catalog/types';
 import {
   classifyRoute,
@@ -27,10 +28,13 @@ import {
 } from '@/features/editor/shape-edit';
 import { insertStopAfter, newStopId, removeStop } from '@/features/editor/stop-edit';
 import { consecutiveAfterStopId, nextStopName, stopName, waypointOnSegment } from '@/features/editor/waypoints';
-import { formatDeparture } from '@/lib/format-departure';
+import { formatDeparture, parseDeparture } from '@/lib/format-departure';
+import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+
+type EditorTool = 'move' | 'detour' | 'draw' | 'addStop';
 
 const MapCanvas = dynamic(() => import('./map-canvas').then((m) => m.MapCanvas), {
   ssr: false,
@@ -70,14 +74,106 @@ export function MapEditor({ routeId, operatorCode, depotCode, tripId, stopTimes 
   }
 
   return (
-    <MapEditorSession key={`${routeId}:${data.tripId}`} data={data} mutations={mutations} stopTimes={stopTimes} />
+    <MapEditorLoaded
+      key={`${routeId}:${data.tripId}`}
+      data={data}
+      mutations={mutations}
+      operatorCode={operatorCode}
+      depotCode={depotCode}
+      stopTimesProp={stopTimes}
+    />
   );
 }
 
+function stopTimesFromDraft(data: Draft): CatalogStop[] {
+  return data.stops
+    .filter((s) => s.arrivalSec !== undefined || s.departureSec !== undefined)
+    .map((s) => ({
+      stopId: s.stopId,
+      name: s.name,
+      sequence: s.sequence,
+      arrivalSec: s.arrivalSec ?? s.departureSec ?? 0,
+      departureSec: s.departureSec ?? s.arrivalSec ?? 0,
+    }));
+}
+
+function MapEditorLoaded({
+  data,
+  mutations,
+  operatorCode,
+  depotCode,
+  stopTimesProp,
+}: {
+  data: Draft;
+  mutations: ReturnType<typeof useEditorMutations>;
+  operatorCode: string;
+  depotCode: string;
+  stopTimesProp?: CatalogStop[];
+}) {
+  // Course du brouillon (même hors calendrier du jour) → horaires toujours disponibles.
+  const fromCatalog = useTripStops(data.tripId, operatorCode, depotCode);
+  const fromDraft = useMemo(() => stopTimesFromDraft(data), [data]);
+  const stopTimes =
+    (stopTimesProp && stopTimesProp.length >= 2 ? stopTimesProp : undefined) ??
+    (fromCatalog.data && fromCatalog.data.length >= 2 ? fromCatalog.data : undefined) ??
+    (fromDraft.length >= 2 ? fromDraft : undefined);
+
+  return <MapEditorSession data={data} mutations={mutations} stopTimes={stopTimes} />;
+}
+
+function timesFromCatalog(stopTimes: CatalogStop[] | undefined): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const item of stopTimes ?? []) {
+    out[item.stopId] = item.departureSec || item.arrivalSec || 0;
+  }
+  return out;
+}
+
 function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
-  const { patch, patchType, recalc, match, save } = mutations;
+  const { patch, patchType, recalc, match, save, patchTimes } = mutations;
   const [routeKind, setRouteKind] = useState<RouteKind>(() => classifyRoute(data.routeType));
   const [stops, setStops] = useState<EditorStop[]>(data.stops);
+  const [timeSecs, setTimeSecs] = useState<Record<string, number>>(() => timesFromCatalog(stopTimes));
+  // Ne pas écraser une saisie locale si le catalogue arrive après le draft (même course).
+  const timesSyncedForTrip = useRef('');
+  useEffect(() => {
+    if (!stopTimes || stopTimes.length < 2) {
+      return;
+    }
+    if (timesSyncedForTrip.current === data.tripId) {
+      return;
+    }
+    timesSyncedForTrip.current = data.tripId;
+    setTimeSecs(timesFromCatalog(stopTimes));
+  }, [stopTimes, data.tripId]);
+  const canEditTimes = Boolean(stopTimes && stopTimes.length >= 2);
+  const saveStopTimes = async () => {
+    if (!stopTimes || stopTimes.length < 2) {
+      return;
+    }
+    const ordered = [...stopTimes].sort((a, b) => a.sequence - b.sequence);
+    const patches = ordered.map((item) => {
+      const sec = timeSecs[item.stopId] ?? item.departureSec ?? item.arrivalSec;
+      return {
+        stopId: item.stopId,
+        sequence: item.sequence,
+        arrivalSec: sec,
+        departureSec: sec,
+      };
+    });
+    for (let i = 1; i < patches.length; i += 1) {
+      if (patches[i].arrivalSec < patches[i - 1].arrivalSec) {
+        toast.error('Les horaires doivent être croissants le long du parcours.');
+        return;
+      }
+    }
+    try {
+      const out = await patchTimes.mutateAsync({ tripId: data.tripId, stops: patches });
+      toast.success(out.message);
+    } catch (err) {
+      toast.error(isApiError(err) ? err.message : 'Impossible d’enregistrer les horaires.');
+    }
+  };
   const [shape, setShape] = useState<LineString>(data.shape);
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [pickSegment, setPickSegment] = useState(false);
@@ -219,9 +315,51 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
     setPinned([]);
   };
 
+  const activeTool: EditorTool = addStopMode
+    ? 'addStop'
+    : editShape
+      ? 'draw'
+      : pickSegment
+        ? 'detour'
+        : 'move';
+
+  const setTool = (tool: EditorTool) => {
+    if (tool === 'move') {
+      setEditShape(false);
+      resetSegmentPick();
+      resetAddStop();
+      return;
+    }
+    if (tool === 'detour') {
+      setEditShape(false);
+      resetAddStop();
+      setPickSegment(true);
+      setFromStopId('');
+      setToStopId('');
+      setPlaceOnMap(false);
+      return;
+    }
+    if (tool === 'draw') {
+      resetSegmentPick();
+      resetAddStop();
+      setEditShape(true);
+      return;
+    }
+    setEditShape(false);
+    resetSegmentPick();
+    setAddStopMode(true);
+  };
+
+  const tools: { id: EditorTool; label: string }[] = [
+    { id: 'move', label: 'Déplacer' },
+    { id: 'detour', label: 'Détour' },
+    { id: 'draw', label: 'Tracer' },
+    { id: 'addStop', label: 'Ajouter' },
+  ];
+
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_18rem] lg:overflow-hidden">
-      <div className="relative h-[min(55dvh,24rem)] shrink-0 overflow-hidden rounded-md border border-border bg-card sm:h-[min(60dvh,28rem)] lg:h-auto lg:min-h-0 lg:flex-1">
+    <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_20rem] lg:overflow-hidden">
+      <div className="relative h-[min(55dvh,24rem)] shrink-0 overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm sm:h-[min(60dvh,28rem)] lg:h-auto lg:min-h-0 lg:flex-1">
         <div className="absolute inset-0">
         <MapCanvas
           shape={shape}
@@ -249,7 +387,9 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
               return;
             }
             setWaypoints((prev) => [...prev, parsed.data]);
-            resetSegmentPick();
+            setFromStopId('');
+            setToStopId('');
+            setPlaceOnMap(false);
           }}
           onWaypointMove={onWaypointMove}
           onShapePin={onShapePin}
@@ -259,16 +399,18 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
         </div>
       </div>
       <aside className="flex flex-col gap-3 pb-6 lg:min-h-0 lg:overflow-y-auto lg:pb-0" aria-label="Arrêts et actions">
-        <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-3">
-          <p className="font-mono text-sm font-medium tracking-tight">{data.shortName}</p>
-          <p className="text-xs text-muted-foreground">{data.longName}</p>
+        <div className="flex flex-col gap-3 rounded-xl border border-border/80 bg-card p-3 shadow-sm">
+          <div>
+            <p className="font-mono text-sm font-semibold tracking-tight">{data.shortName}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{data.longName}</p>
+          </div>
           <div className="flex flex-col gap-1">
             <Label htmlFor="route-kind" className="text-xs text-muted-foreground">
               Type de ligne
             </Label>
             <select
               id="route-kind"
-              className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
+              className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
               value={routeKind}
               disabled={patchType.isPending}
               onChange={async (e) => {
@@ -296,39 +438,87 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
               ))}
             </select>
           </div>
-        </div>
-        <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-3">
-          <Button
-            type="button"
-            variant={pickSegment ? 'default' : 'outline'}
-            size="lg"
-            aria-pressed={pickSegment}
-            onClick={() => {
-              if (pickSegment) {
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              size="lg"
+              className="h-10"
+              disabled={save.isPending}
+              onClick={async () => {
+                try {
+                  // 1. Persister le LineString affiché (après collage OSM si fait).
+                  const out = await save.mutateAsync({ tripId: data.tripId, stops, shape });
+                  // 2. Confirmation sync GTFS / mobile.
+                  setPinned([]);
+                  setEditShape(false);
+                  resetSegmentPick();
+                  toast.success(out.message);
+                } catch (err) {
+                  toast.error(isApiError(err) ? err.message : 'Enregistrement impossible.');
+                }
+              }}
+            >
+              Enregistrer
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="h-10"
+              onClick={() => {
+                setStops(data.stops);
+                setShape(data.shape);
+                setWaypoints([]);
+                setPinned([]);
+                setEditShape(false);
                 resetSegmentPick();
-                return;
-              }
-              setEditShape(false);
-              resetAddStop();
-              setPickSegment(true);
-              setFromStopId('');
-              setToStopId('');
-              setPlaceOnMap(false);
-            }}
+                resetAddStop();
+                setSearchQ('');
+                setInsertAfterId('');
+              }}
+            >
+              Annuler
+            </Button>
+          </div>
+          <p className="text-[0.7rem] text-muted-foreground">Version feed : {data.feedVersion}</p>
+        </div>
+        <div className="flex flex-col gap-2 rounded-xl border border-border/80 bg-card p-3 shadow-sm">
+          <p className="text-xs font-medium text-muted-foreground">Outils carte</p>
+          <div
+            className="grid grid-cols-2 gap-1 rounded-lg bg-muted/70 p-1"
+            role="toolbar"
+            aria-label="Modes d’édition"
           >
-            Imposer un détour entre 2 arrêts
-          </Button>
-          {pickSegment ? (
-            <div className="flex flex-col gap-2 rounded-md border border-border p-2">
+            {tools.map((tool) => {
+              const active = activeTool === tool.id;
+              return (
+                <button
+                  key={tool.id}
+                  type="button"
+                  aria-pressed={active}
+                  className={cn(
+                    'rounded-md px-2 py-2 text-xs font-medium transition-[color,background-color,transform] duration-150 ease-[var(--ease-out)]',
+                    active
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                  onClick={() => setTool(active && tool.id !== 'move' ? 'move' : tool.id)}
+                >
+                  {tool.label}
+                </button>
+              );
+            })}
+          </div>
+          {activeTool === 'detour' ? (
+            <div className="flex flex-col gap-2 rounded-lg border border-border bg-background/70 p-2.5">
               <p className="text-xs text-muted-foreground">
-                Sur une boucle : choisissez le départ et l’arrivée qui se suivent (ex. Jardins
-                Ouvriers → Étang), ou cliquez les deux arrêts sur la carte, puis la rue.
+                Choisissez deux arrêts qui se suivent (liste ou carte), puis cliquez la rue du détour.
               </p>
               <div className="flex flex-col gap-1">
                 <Label htmlFor="wp-from">Arrêt de départ</Label>
                 <select
                   id="wp-from"
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
                   value={fromStopId}
                   onChange={(e) => {
                     setFromStopId(e.target.value);
@@ -348,7 +538,7 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
                 <Label htmlFor="wp-to">Arrêt d’arrivée</Label>
                 <select
                   id="wp-to"
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
                   value={toStopId}
                   disabled={!fromStopId}
                   onChange={(e) => {
@@ -381,215 +571,146 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
                   {nextStopName(stops, afterStopId)} (loin du raccourci).
                 </p>
               ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="h-9"
+                disabled={recalc.isPending}
+                onClick={async () => {
+                  if (waypoints.length === 0) {
+                    toast.warning('Ajoutez d’abord un détour entre 2 arrêts, sinon votre tracé resterait remplacé par le chemin OSRM de base.');
+                    return;
+                  }
+                  try {
+                    const out = await recalc.mutateAsync({ tripId: data.tripId, stops, waypoints });
+                    setShape(out.shape);
+                    setPinned([]);
+                    toast.success('Tracé recalculé avec détours (non enregistré). Pensez à Enregistrer.');
+                  } catch (err) {
+                    toast.error(isApiError(err) ? err.message : 'Recalcul impossible.');
+                  }
+                }}
+              >
+                Recalculer avec détours
+              </Button>
             </div>
           ) : null}
-          <Button
-            type="button"
-            variant={editShape ? 'default' : 'outline'}
-            size="lg"
-            aria-pressed={editShape}
-            onClick={() => {
-              setEditShape((v) => !v);
-              resetSegmentPick();
-            }}
-          >
-            {editShape ? 'Glissez le tracé le long des rues…' : 'Ajuster le tracé à la main'}
-          </Button>
-          {editShape ? (
-            <p className="text-xs text-muted-foreground">
-              Attrapez la ligne bleue, glissez le chemin voulu, puis Coller aux rues — sans
-              Recalculer ensuite (sauf si vous avez posé un détour).
-            </p>
+          {activeTool === 'draw' ? (
+            <div className="flex flex-col gap-2 rounded-lg border border-border bg-background/70 p-2.5">
+              <p className="text-xs text-muted-foreground">
+                Glissez le tracé le long des rues, puis collez-le sur OSM.
+              </p>
+              <Button
+                type="button"
+                size="lg"
+                className="h-9"
+                disabled={match.isPending}
+                onClick={async () => {
+                  try {
+                    const out = await match.mutateAsync({ tripId: data.tripId, shape });
+                    setShape(out.shape);
+                    setPinned([]);
+                    toast.success('Tracé collé sur les rues (non enregistré).');
+                  } catch (err) {
+                    toast.error(isApiError(err) ? err.message : 'Impossible de coller le tracé sur les rues.');
+                  }
+                }}
+              >
+                Coller aux rues
+              </Button>
+            </div>
           ) : null}
-          <Button
-            type="button"
-            size="lg"
-            disabled={match.isPending}
-            onClick={async () => {
-              try {
-                // 1. Envoyer le LineString actuel (geste ou GTFS), pas seulement A→B.
-                // 2. L’API appelle OSRM /match (collage OSM), pas /route.
-                const out = await match.mutateAsync({ tripId: data.tripId, shape });
-                setShape(out.shape);
-                setPinned([]);
-                toast.success('Tracé collé sur les rues (non enregistré).');
-              } catch (err) {
-                toast.error(isApiError(err) ? err.message : 'Impossible de coller le tracé sur les rues.');
-              }
-            }}
-          >
-            Coller aux rues
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            Colle votre tracé sur les rues OSM, puis Enregistrer. « Recalculer » sert uniquement
-            après un détour (point de passage entre 2 arrêts) — sans détour, il ne touche pas à
-            votre tracé.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            disabled={recalc.isPending}
-            onClick={async () => {
-              // Sans détour, OSRM /route reconstruit le trajet A→B « de base » et écrase le dessin.
-              if (waypoints.length === 0) {
-                toast.warning('Ajoutez d’abord un détour entre 2 arrêts, sinon votre tracé resterait remplacé par le chemin OSRM de base.');
-                return;
-              }
-              try {
-                const out = await recalc.mutateAsync({ tripId: data.tripId, stops, waypoints });
-                setShape(out.shape);
-                setPinned([]);
-                toast.success('Tracé recalculé avec détours (non enregistré). Pensez à Enregistrer.');
-              } catch (err) {
-                toast.error(isApiError(err) ? err.message : 'Recalcul impossible.');
-              }
-            }}
-          >
-            Recalculer avec détours
-          </Button>
-          <Button
-            type="button"
-            size="lg"
-            disabled={save.isPending}
-            onClick={async () => {
-              try {
-                // 1. Persister le LineString affiché (après collage OSM si fait).
-                const out = await save.mutateAsync({ tripId: data.tripId, stops, shape });
-                // 2. Confirmation sync GTFS / mobile.
-                setPinned([]);
-                setEditShape(false);
-                resetSegmentPick();
-                toast.success(out.message);
-              } catch (err) {
-                toast.error(isApiError(err) ? err.message : 'Enregistrement impossible.');
-              }
-            }}
-          >
-            Enregistrer
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="lg"
-            onClick={() => {
-              setStops(data.stops);
-              setShape(data.shape);
-              setWaypoints([]);
-              setPinned([]);
-              setEditShape(false);
-              resetSegmentPick();
-              resetAddStop();
-              setSearchQ('');
-              setInsertAfterId('');
-            }}
-          >
-            Annuler
-          </Button>
-        </div>
-        <p className="px-0.5 text-xs text-muted-foreground">Version feed : {data.feedVersion}</p>
-        <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-3">
-          <p className="text-sm font-medium">Arrêts du parcours</p>
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="insert-after" className="text-xs text-muted-foreground">
-              Insérer après
-            </Label>
-            <select
-              id="insert-after"
-              className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
-              value={insertAfterId}
-              onChange={(e) => setInsertAfterId(e.target.value)}
-            >
-              <option value="">En fin de parcours</option>
-              {stops.map((stop) => (
-                <option key={`${stop.stopId}:${stop.sequence}`} value={stop.stopId}>
-                  {stop.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Button
-            type="button"
-            variant={addStopMode ? 'default' : 'outline'}
-            size="lg"
-            aria-pressed={addStopMode}
-            onClick={() => {
-              if (addStopMode) {
-                resetAddStop();
-                return;
-              }
-              setEditShape(false);
-              resetSegmentPick();
-              setAddStopMode(true);
-            }}
-          >
-            {addStopMode ? 'Cliquez sur la carte…' : 'Ajouter un arrêt (carte)'}
-          </Button>
-          {pendingNewStop ? (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="new-stop-name">Nom du nouvel arrêt</Label>
-              <Input
-                id="new-stop-name"
-                value={newStopName}
-                onChange={(e) => setNewStopName(e.target.value)}
-                placeholder="Ex. Collège Entrée Sud"
-              />
-              <div className="flex gap-2">
-                <Button type="button" size="lg" onClick={confirmNewStop}>
-                  Valider l’arrêt
-                </Button>
-                <Button type="button" variant="ghost" size="lg" onClick={resetAddStop}>
-                  Annuler
-                </Button>
+          {activeTool === 'addStop' || pendingNewStop ? (
+            <div className="flex flex-col gap-2 rounded-lg border border-border bg-background/70 p-2.5">
+              <p className="text-xs text-muted-foreground">
+                {pendingNewStop ? 'Nommez le nouvel arrêt.' : 'Cliquez sur la carte pour placer l’arrêt.'}
+              </p>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="insert-after" className="text-xs text-muted-foreground">
+                  Insérer après
+                </Label>
+                <select
+                  id="insert-after"
+                  className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                  value={insertAfterId}
+                  onChange={(e) => setInsertAfterId(e.target.value)}
+                >
+                  <option value="">En fin de parcours</option>
+                  {stops.map((stop) => (
+                    <option key={`${stop.stopId}:${stop.sequence}`} value={stop.stopId}>
+                      {stop.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {pendingNewStop ? (
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="new-stop-name">Nom du nouvel arrêt</Label>
+                  <Input
+                    id="new-stop-name"
+                    value={newStopName}
+                    onChange={(e) => setNewStopName(e.target.value)}
+                    placeholder="Ex. Collège Entrée Sud"
+                  />
+                  <div className="flex gap-2">
+                    <Button type="button" size="lg" className="h-9" onClick={confirmNewStop}>
+                      Valider l’arrêt
+                    </Button>
+                    <Button type="button" variant="ghost" size="lg" className="h-9" onClick={resetAddStop}>
+                      Annuler
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="stop-search">Rechercher un arrêt GTFS</Label>
+                <Input
+                  id="stop-search"
+                  value={searchQ}
+                  onChange={(e) => setSearchQ(e.target.value)}
+                  placeholder="Nom (min. 2 lettres)"
+                />
+                {stopSearch.data && stopSearch.data.length > 0 ? (
+                  <ul className="max-h-40 overflow-y-auto rounded-lg border border-border">
+                    {stopSearch.data.map((hit) => (
+                      <li key={hit.stopId}>
+                        <button
+                          type="button"
+                          className="flex w-full px-2 py-2 text-left text-sm transition-colors hover:bg-muted"
+                          onClick={() => {
+                            if (stops.some((s) => s.stopId === hit.stopId)) {
+                              toast.error('Cet arrêt est déjà dans le parcours.');
+                              return;
+                            }
+                            setStops((prev) =>
+                              insertStopAfter(prev, insertAfterId || null, {
+                                stopId: hit.stopId,
+                                name: hit.name,
+                                lat: hit.lat,
+                                lng: hit.lng,
+                              }),
+                            );
+                            setSearchQ('');
+                            toast.success('Arrêt ajouté (non enregistré).');
+                          }}
+                        >
+                          {hit.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
             </div>
           ) : null}
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="stop-search">Rechercher un arrêt GTFS</Label>
-            <Input
-              id="stop-search"
-              value={searchQ}
-              onChange={(e) => setSearchQ(e.target.value)}
-              placeholder="Nom (min. 2 lettres)"
-            />
-            {stopSearch.data && stopSearch.data.length > 0 ? (
-              <ul className="max-h-40 overflow-y-auto rounded-md border border-border">
-                {stopSearch.data.map((hit) => (
-                  <li key={hit.stopId}>
-                    <button
-                      type="button"
-                      className="flex w-full px-2 py-2 text-left text-sm hover:bg-muted"
-                      onClick={() => {
-                        if (stops.some((s) => s.stopId === hit.stopId)) {
-                          toast.error('Cet arrêt est déjà dans le parcours.');
-                          return;
-                        }
-                        setStops((prev) =>
-                          insertStopAfter(prev, insertAfterId || null, {
-                            stopId: hit.stopId,
-                            name: hit.name,
-                            lat: hit.lat,
-                            lng: hit.lng,
-                          }),
-                        );
-                        setSearchQ('');
-                        toast.success('Arrêt ajouté (non enregistré).');
-                      }}
-                    >
-                      {hit.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
         </div>
         {waypoints.length > 0 ? (
-          <div>
+          <div className="rounded-xl border border-border/80 bg-card p-3 shadow-sm">
             <p className="mb-2 text-sm font-medium">Points de passage (OSRM)</p>
             <ul className="flex flex-col gap-2">
               {waypoints.map((wp, i) => (
-                <li key={`wp-list-${i}`} className="flex min-h-11 items-center justify-between gap-2 rounded-md border border-border px-3 py-2">
+                <li key={`wp-list-${i}`} className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
                   <span className="text-sm">
                     {stopName(stops, wp.afterStopId) && nextStopName(stops, wp.afterStopId)
                       ? `Point entre ${stopName(stops, wp.afterStopId)} et ${nextStopName(stops, wp.afterStopId)}`
@@ -608,11 +729,11 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
           </div>
         ) : null}
         {pinned.length > 0 ? (
-          <div>
+          <div className="rounded-xl border border-border/80 bg-card p-3 shadow-sm">
             <p className="mb-2 text-sm font-medium">Poignées du tracé</p>
             <ul className="flex flex-col gap-2">
               {pinned.map((index) => (
-                <li key={`pin-${index}`} className="flex min-h-11 items-center justify-between gap-2 rounded-md border border-border px-3 py-2">
+                <li key={`pin-${index}`} className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
                   <span className="text-sm">Sommet {index + 1}</span>
                   <Button
                     type="button"
@@ -630,12 +751,61 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
             </ul>
           </div>
         ) : null}
-        <ol className="flex flex-col gap-3">
-          {stops.map((stop) => (
-            <li key={`${stop.stopId}:${stop.sequence}`} className="rounded-md border border-border p-2">
+        <div className="rounded-xl border border-border/80 bg-card p-3 shadow-sm">
+          <div className="mb-3 flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-medium">Arrêts et horaires</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {canEditTimes
+                  ? 'Changez l’heure dans le champ ci-dessous, puis Enregistrer les horaires.'
+                  : 'Horaires indisponibles pour cette course (rechargez la page).'}
+              </p>
+            </div>
+            {canEditTimes ? (
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 shrink-0"
+                disabled={patchTimes.isPending}
+                onClick={() => void saveStopTimes()}
+              >
+                Enregistrer les horaires
+              </Button>
+            ) : null}
+          </div>
+          <ol className="flex flex-col gap-3">
+          {stops.map((stop, stopIndex) => {
+            const timed =
+              stopTimes?.find((item) => item.stopId === stop.stopId) ??
+              stopTimes?.find((item) => item.sequence === stop.sequence) ??
+              stopTimes?.[stopIndex];
+            const timeKey = timed?.stopId ?? stop.stopId;
+            const sec = timed
+              ? (timeSecs[timeKey] ?? timed.departureSec ?? timed.arrivalSec)
+              : timeSecs[timeKey];
+            return (
+            <li key={`${stop.stopId}:${stop.sequence}`} className="rounded-lg border border-border/80 bg-background/60 p-2.5">
               <p className="text-sm font-medium">{stop.name}</p>
-              {stopTimeLabel(stop.stopId, stopTimes) ? (
-                <p className="text-xs text-muted-foreground">{stopTimeLabel(stop.stopId, stopTimes)}</p>
+              {canEditTimes && timed && sec !== undefined ? (
+                  <div className="mt-2 flex flex-col gap-1 rounded-lg border border-primary/30 bg-primary/5 p-2">
+                    <Label htmlFor={`time-${timeKey}`} className="text-xs font-medium text-foreground">
+                      Horaire (modifiable)
+                    </Label>
+                    <Input
+                      id={`time-${timeKey}`}
+                      type="time"
+                      className="h-10 w-full max-w-[12rem] border-input bg-background font-mono text-base"
+                      aria-label={`Horaire ${stop.name}`}
+                      value={formatDeparture(sec)}
+                      onChange={(e) => {
+                        const parsed = parseDeparture(e.target.value);
+                        if (parsed === null) {
+                          return;
+                        }
+                        setTimeSecs((prev) => ({ ...prev, [timeKey]: parsed }));
+                      }}
+                    />
+                  </div>
               ) : null}
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <div>
@@ -693,21 +863,11 @@ function MapEditorSession({ data, mutations, stopTimes }: SessionProps) {
                 Supprimer du parcours
               </Button>
             </li>
-          ))}
-        </ol>
+            );
+          })}
+          </ol>
+        </div>
       </aside>
     </div>
   );
-}
-
-function stopTimeLabel(stopId: string, stopTimes: CatalogStop[] | undefined): string | null {
-  const timed = stopTimes?.find((item) => item.stopId === stopId);
-  if (!timed) {
-    return null;
-  }
-  const sec = timed.departureSec || timed.arrivalSec;
-  if (!sec) {
-    return null;
-  }
-  return formatDeparture(sec);
 }

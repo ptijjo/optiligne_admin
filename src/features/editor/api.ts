@@ -3,15 +3,19 @@ import {
   createRouteBodySchema,
   createRouteResponseSchema,
   draftSchema,
+  patchTripStopTimesResponseSchema,
   recalcResponseSchema,
   saveResponseSchema,
   stopHitSchema,
+  tripStopTimePatchSchema,
   type CreateRouteBody,
   type CreateRouteResponse,
   type Draft,
   type EditorStop,
   type LineString,
+  type PatchTripStopTimesResponse,
   type StopHit,
+  type TripStopTimePatch,
   type Waypoint,
 } from '@/features/editor/schemas';
 import { z } from 'zod';
@@ -118,5 +122,24 @@ export function saveDraft(
     { operatorCode, depotCode, tripId, stops, shape },
     saveResponseSchema,
     { timeoutMs: 120_000 },
+  );
+}
+
+export function patchTripStopTimes(
+  routeId: string,
+  tripId: string,
+  operatorCode: string,
+  depotCode: string,
+  stops: TripStopTimePatch[],
+): Promise<PatchTripStopTimesResponse> {
+  const body = {
+    operatorCode,
+    depotCode,
+    stops: z.array(tripStopTimePatchSchema).min(2).parse(stops),
+  };
+  return api.patch(
+    `/admin/routes/${encodeURIComponent(routeId)}/trips/${encodeURIComponent(tripId)}/stop-times`,
+    body,
+    patchTripStopTimesResponseSchema,
   );
 }

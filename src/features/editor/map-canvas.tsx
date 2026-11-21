@@ -175,7 +175,7 @@ function ShapeStroke({
   return (
     <Polyline
       positions={preview}
-      pathOptions={{ color: '#f4a261', weight: 6, opacity: 0.95, dashArray: '8 6' }}
+      pathOptions={{ color: '#c45c26', weight: 6, opacity: 0.95, dashArray: '8 6' }}
     />
   );
 }
@@ -193,6 +193,18 @@ function FitMap() {
       window.removeEventListener('resize', onResize);
     };
   }, [map]);
+  return null;
+}
+
+function MapBusyCursor({ busy }: { busy: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    const el = map.getContainer();
+    el.classList.toggle('ol-map-busy', busy);
+    return () => {
+      el.classList.remove('ol-map-busy');
+    };
+  }, [busy, map]);
   return null;
 }
 
@@ -225,23 +237,39 @@ export function MapCanvas({
     <MapContainer
       center={center}
       zoom={13}
-      className="h-full w-full rounded-lg"
+      className="h-full w-full rounded-xl"
       scrollWheelZoom
     >
       <FitMap />
+      <MapBusyCursor busy={mapBusy || editShapeMode} />
       <TileLayer
-        attribution='&copy; OpenStreetMap'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        subdomains="abcd"
       />
       {positions.length >= 2 ? (
-        <Polyline
-          positions={positions}
-          pathOptions={{
-            color: 'var(--brand, #0056D6)',
-            weight: editShapeMode ? 10 : 6,
-            opacity: 0.85,
-          }}
-        />
+        <>
+          <Polyline
+            positions={positions}
+            pathOptions={{
+              color: '#122033',
+              weight: editShapeMode ? 12 : 8,
+              opacity: 0.18,
+              lineCap: 'round',
+              lineJoin: 'round',
+            }}
+          />
+          <Polyline
+            positions={positions}
+            pathOptions={{
+              color: 'var(--brand, #1a6b5a)',
+              weight: editShapeMode ? 8 : 5,
+              opacity: 0.95,
+              lineCap: 'round',
+              lineJoin: 'round',
+            }}
+          />
+        </>
       ) : null}
       <ShapeStroke
         enabled={editShapeMode && !addStopMode}
@@ -269,7 +297,7 @@ export function MapCanvas({
               },
             }}
           >
-            <Tooltip direction="top" offset={[0, -8]} permanent>
+            <Tooltip direction="top" offset={[0, -8]} opacity={0.95} className="ol-map-tooltip">
               {stop.name}
             </Tooltip>
           </Marker>
@@ -288,7 +316,7 @@ export function MapCanvas({
             },
           }}
         >
-          <Tooltip>Point de passage {i + 1} — glissez pour déplacer</Tooltip>
+          <Tooltip className="ol-map-tooltip">Point de passage {i + 1} — glissez pour déplacer</Tooltip>
         </Marker>
       ))}
       {pinnedVertexIndices.map((index) => {
@@ -310,7 +338,7 @@ export function MapCanvas({
               },
             }}
           >
-            <Tooltip>Sommet du tracé — glissez pour corriger</Tooltip>
+            <Tooltip className="ol-map-tooltip">Sommet du tracé — glissez pour corriger</Tooltip>
           </Marker>
         );
       })}

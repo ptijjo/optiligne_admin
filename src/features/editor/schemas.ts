@@ -6,6 +6,8 @@ export const editorStopSchema = z.object({
   sequence: z.number().int(),
   lat: z.number().gte(-90).lte(90),
   lng: z.number().gte(-180).lte(180),
+  arrivalSec: z.number().int().nonnegative().optional(),
+  departureSec: z.number().int().nonnegative().optional(),
 });
 
 export const waypointSchema = z.object({
@@ -86,6 +88,21 @@ export const stopPatchSchema = z.object({
   lat: z.number().gte(-90).lte(90),
   lng: z.number().gte(-180).lte(180),
 });
+
+export const tripStopTimePatchSchema = z.object({
+  stopId: z.string().min(1),
+  sequence: z.number().int().positive(),
+  arrivalSec: z.number().int().gte(0),
+  departureSec: z.number().int().gte(0),
+});
+
+export const patchTripStopTimesResponseSchema = z.object({
+  feedVersion: z.string(),
+  message: z.string().min(1),
+});
+
+export type TripStopTimePatch = z.infer<typeof tripStopTimePatchSchema>;
+export type PatchTripStopTimesResponse = z.infer<typeof patchTripStopTimesResponseSchema>;
 
 export const stopHitSchema = z.object({
   stopId: z.string(),

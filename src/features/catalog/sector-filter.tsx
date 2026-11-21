@@ -11,7 +11,7 @@ type Props = {
 export function SectorFilter({ value, onChange }: Props) {
   return (
     <div
-      className="-mx-1 flex gap-0 overflow-x-auto border-b border-border px-1"
+      className="flex gap-1.5 overflow-x-auto pb-0.5"
       role="tablist"
       aria-label="Réseau"
     >
@@ -24,10 +24,10 @@ export function SectorFilter({ value, onChange }: Props) {
             role="tab"
             aria-selected={active}
             className={cn(
-              'shrink-0 border-b-2 px-3 py-2 text-sm whitespace-nowrap transition-colors',
+              'shrink-0 rounded-full px-3 py-1.5 text-sm whitespace-nowrap transition-[color,background-color,transform] duration-150 ease-[var(--ease-out)]',
               active
-                ? 'border-primary font-medium text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground',
+                ? 'bg-primary font-medium text-primary-foreground shadow-sm'
+                : 'bg-card text-muted-foreground ring-1 ring-border hover:bg-muted hover:text-foreground',
             )}
             onClick={() => onChange(sector.code)}
           >
